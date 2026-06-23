@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
+import Contacts from './pages/Contacts';
 import Applications from './pages/Applications';
 import Interviews from './pages/Interviews';
 
@@ -18,6 +19,7 @@ export default function App() {
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/companies" element={<Companies />} />
+          <Route path="/contacts" element={<Contacts />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/interviews" element={<Interviews />} />
         </Route>

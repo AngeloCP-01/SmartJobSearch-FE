@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, KanbanSquare, Building2, CalendarClock, LogOut, Briefcase } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, Building2, Users, CalendarClock, LogOut, Briefcase } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/applications', label: 'Applications', icon: KanbanSquare },
   { to: '/companies', label: 'Companies', icon: Building2 },
+  { to: '/contacts', label: 'Contacts', icon: Users },
   { to: '/interviews', label: 'Interviews', icon: CalendarClock },
 ];
 
