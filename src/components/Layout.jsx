@@ -1,9 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, LineChart, KanbanSquare, Building2, Users, CalendarClock, LogOut, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, CalendarClock, LogOut, Briefcase } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
+import { fetchReminders } from '../api/reminders';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/reminders', label: 'Reminders', icon: Bell },
   { to: '/analytics', label: 'Analytics', icon: LineChart },
   { to: '/applications', label: 'Applications', icon: KanbanSquare },
   { to: '/companies', label: 'Companies', icon: Building2 },
@@ -28,23 +31,33 @@ function Brand() {
   );
 }
 
-function NavLinks({ onNavigate }) {
+function NavLinks({ onNavigate, reminderCount = 0 }) {
   return NAV.map(({ to, label, icon: Icon, end }) => (
     <NavLink key={to} to={to} end={end} className={navClass} onClick={onNavigate}>
       <Icon size={18} aria-hidden="true" />
       <span>{label}</span>
+      {to === '/reminders' && reminderCount > 0 && (
+        <span
+          aria-label={`${reminderCount} reminders`}
+          className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-sky-600 px-1.5 text-xs font-semibold text-white"
+        >
+          {reminderCount}
+        </span>
+      )}
     </NavLink>
   ));
 }
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { data: reminders } = useQuery({ queryKey: ['reminders'], queryFn: fetchReminders });
+  const reminderCount = reminders?.counts?.total ?? 0;
   return (
     <div className="min-h-dvh md:flex">
       {/* Sidebar (desktop) */}
       <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col gap-1 border-r border-sky-100 bg-white p-3">
         <div className="mb-4"><Brand /></div>
-        <nav className="flex flex-col gap-1" aria-label="Primary"><NavLinks /></nav>
+        <nav className="flex flex-col gap-1" aria-label="Primary"><NavLinks reminderCount={reminderCount} /></nav>
         <div className="mt-auto border-t border-sky-100 pt-3">
           <p className="px-2 text-xs text-slate-500 truncate" title={user?.email}>{user?.email}</p>
           <button
@@ -67,7 +80,7 @@ export default function Layout() {
             <LogOut size={18} aria-hidden="true" />
           </button>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Primary"><NavLinks /></nav>
+        <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Primary"><NavLinks reminderCount={reminderCount} /></nav>
       </header>
 
       <main className="flex-1 p-5 md:p-8"><Outlet /></main>

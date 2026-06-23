@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Reminders from './pages/Reminders';
 import Analytics from './pages/Analytics';
 import Companies from './pages/Companies';
 import Contacts from './pages/Contacts';
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/reminders" element={<Reminders />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/contacts" element={<Contacts />} />
