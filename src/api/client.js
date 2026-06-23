@@ -41,8 +41,13 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${accessToken}`;
         return api(original);
       } catch (refreshErr) {
-        setAccessToken(null);
-        emitUnauthorized();
+        // Only a real 401 means the session is invalid/expired → log out. A
+        // network error or 5xx (server down/restarting) must NOT nuke the
+        // session — just fail the request so it can be retried once it's back.
+        if (refreshErr.response?.status === 401) {
+          setAccessToken(null);
+          emitUnauthorized();
+        }
         return Promise.reject(refreshErr);
       }
     }

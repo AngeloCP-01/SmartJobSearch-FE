@@ -10,6 +10,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -18,7 +19,7 @@ export default function Login() {
     setError(null);
     setBusy(true);
     try {
-      await login({ email, password });
+      await login({ email, password, rememberMe: remember });
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Login failed');
@@ -39,6 +40,15 @@ export default function Login() {
         <form onSubmit={onSubmit} noValidate>
           <Field label="Email" name="email" type="email" value={email} onChange={setEmail} required autoComplete="email" />
           <Field label="Password" name="password" type="password" value={password} onChange={setPassword} required autoComplete="current-password" />
+          <label className="mb-4 flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            />
+            Keep me logged in
+          </label>
           {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
           <Button type="submit" className="w-full" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>
         </form>

@@ -59,7 +59,7 @@ test('concurrent 401s share a single refresh call (no duplicate rotation)', asyn
   expect(refreshCount).toBe(1);
 });
 
-test('when refresh fails it clears the token and rejects', async () => {
+test('when refresh returns 401 it clears the token and rejects', async () => {
   setAccessToken('stale');
   server.use(
     http.get(`${API}/widget`, () => HttpResponse.json({ error: { message: 'x', code: 'UNAUTHORIZED' } }, { status: 401 })),
@@ -67,4 +67,15 @@ test('when refresh fails it clears the token and rejects', async () => {
   );
   await expect(api.get('/widget')).rejects.toBeTruthy();
   expect(getAccessToken()).toBeNull();
+});
+
+test('a server outage during refresh does NOT log out (only a real 401 does)', async () => {
+  setAccessToken('stale');
+  server.use(
+    http.get(`${API}/widget`, () => HttpResponse.json({ error: { message: 'x', code: 'UNAUTHORIZED' } }, { status: 401 })),
+    // 503 = server down / restarting — not an invalid session.
+    http.post(`${API}/auth/refresh`, () => HttpResponse.json({ error: { message: 'down' } }, { status: 503 })),
+  );
+  await expect(api.get('/widget')).rejects.toBeTruthy();
+  expect(getAccessToken()).toBe('stale');
 });
