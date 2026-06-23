@@ -4,8 +4,8 @@ import {
   PointerSensor, KeyboardSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, AlertCircle, Maximize2 } from 'lucide-react';
-import { listApplications, createApplication, updateStatus } from '../api/applications';
+import { Plus, AlertCircle, Maximize2, Search } from 'lucide-react';
+import { listApplications, updateStatus } from '../api/applications';
 import Button from '../components/Button';
 import ApplicationDrawer from '../components/ApplicationDrawer';
 import { STATUSES } from '../lib/applicationStatus';
@@ -102,7 +102,7 @@ function Column({ status, apps, onOpen }) {
 
 export default function Applications() {
   const qc = useQueryClient();
-  const [position, setPosition] = useState('');
+  const [search, setSearch] = useState('');
   const [drawer, setDrawer] = useState({ open: false, application: null });
   const openDrawer = (application) => setDrawer({ open: true, application });
   const sensors = useSensors(
@@ -111,10 +111,8 @@ export default function Applications() {
   );
   const { data: apps = [], isLoading } = useQuery({ queryKey: ['applications'], queryFn: listApplications });
 
-  const create = useMutation({
-    mutationFn: createApplication,
-    onSuccess: () => { setPosition(''); qc.invalidateQueries({ queryKey: ['applications'] }); },
-  });
+  const term = search.trim().toLowerCase();
+  const visible = term ? apps.filter((a) => a.position.toLowerCase().includes(term)) : apps;
 
   const move = useMutation(moveMutationOptions(qc));
 
@@ -128,22 +126,19 @@ export default function Applications() {
   return (
     <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Applications</h1>
-      <form
-        className="mb-4 flex max-w-md gap-2"
-        onSubmit={(e) => { e.preventDefault(); if (position.trim()) create.mutate({ position: position.trim() }); }}
-      >
-        <input
-          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900
-            focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-          placeholder="Position title"
-          value={position}
-          onChange={(e) => setPosition(e.target.value)}
-        />
-        <Button type="submit" disabled={create.isPending}><Plus size={16} aria-hidden="true" /> Add application</Button>
-      </form>
-
-      <div className="mb-3">
-        <Button variant="subtle" onClick={() => openDrawer(null)}>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative max-w-md flex-1">
+          <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+          <input
+            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-slate-900
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            placeholder="Search applications…"
+            aria-label="Search applications"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button onClick={() => openDrawer(null)}>
           <Plus size={16} aria-hidden="true" /> New application
         </Button>
       </div>
@@ -160,13 +155,16 @@ export default function Applications() {
         <>
           {apps.length === 0 && (
             <p className="mb-3 text-sm text-slate-500">
-              No applications yet — add one above, then drag it across the board as you progress.
+              No applications yet — click <span className="font-medium">New application</span> to add your first one, then drag it across the board as you progress.
             </p>
+          )}
+          {apps.length > 0 && visible.length === 0 && (
+            <p className="mb-3 text-sm text-slate-500">No applications match your search.</p>
           )}
           <DndContext sensors={sensors} onDragEnd={onDragEnd}>
             <div className="flex gap-3 overflow-x-auto pb-4">
               {STATUSES.map((s) => (
-                <Column key={s} status={s} apps={apps.filter((a) => a.status === s)} onOpen={openDrawer} />
+                <Column key={s} status={s} apps={visible.filter((a) => a.status === s)} onOpen={openDrawer} />
               ))}
             </div>
           </DndContext>
