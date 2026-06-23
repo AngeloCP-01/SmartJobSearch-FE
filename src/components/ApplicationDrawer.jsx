@@ -4,7 +4,7 @@ import { X, Trash2 } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
 import { createApplication, updateApplication, deleteApplication } from '../api/applications';
 import { listInterviews, createInterview, deleteInterview } from '../api/interviews';
-import { STATUSES } from '../pages/Applications';
+import { STATUSES } from '../lib/applicationStatus';
 import Field from './Field';
 import Button from './Button';
 
