@@ -22,7 +22,7 @@ Right-side drawer to view/edit/create an application with all fields; company pi
 26 passing across 9 suites (adds ApplicationDrawer + board-integration tests). Production build verified.
 
 ## In Flight
-_FE-0…FE-5 and v1.5 (application details) merged to `main` (local only). Only FE-6 (deploy) remains._
+_FE-0…FE-5 and v1.5 merged to `main` (local only). **Deployment paused (2026-06-23); v2 is next** — see root `../TRACKER.md` (deploy notes) and `../V2-KICKOFF.md`._
 
 ## Notes / Blockers
 - 2026-06-23 — FE-0…FE-5 implemented TDD on `feat/frontend-v1`. Design system in DESIGN.md.
