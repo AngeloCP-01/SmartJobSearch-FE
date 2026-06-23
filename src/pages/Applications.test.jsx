@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server, API } from '../test/server';
 import api from '../api/client';
@@ -36,6 +37,39 @@ test('moving a card calls PATCH /:id/status with the target column', async () =>
   await applyDrop({ activeId: 'a1', overId: 'Offer' }, (id, status) =>
     api.patch(`/applications/${id}/status`, { status }));
   await waitFor(() => expect(patched).toEqual({ status: 'Offer' }));
+});
+
+test('cards show the company name and salary chip', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([
+    { id: 'a1', position: 'Backend Eng', status: 'Applied', company: { id: 'c1', name: 'Acme' }, salaryMin: 90000, salaryMax: 110000 },
+  ])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  expect(screen.getByText('Acme')).toBeInTheDocument();
+  expect(screen.getByText(/90k/)).toBeInTheDocument();
+});
+
+test('clicking a card open button opens the drawer pre-filled', async () => {
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Eng', status: 'Applied', company: null }])),
+    http.get(`${API}/companies`, () => HttpResponse.json([])),
+    http.get(`${API}/interviews`, () => HttpResponse.json([])),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /open backend eng/i }));
+  await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+  expect(screen.getByLabelText(/position/i)).toHaveValue('Backend Eng');
+});
+
+test('New application button opens the drawer in create mode', async () => {
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API}/companies`, () => HttpResponse.json([])),
+  );
+  renderPage();
+  await userEvent.click(screen.getByRole('button', { name: /new application/i }));
+  await waitFor(() => expect(screen.getByRole('dialog', { name: /new application/i })).toBeInTheDocument());
 });
 
 test('move optimistically updates the cache and rolls back on error', async () => {
