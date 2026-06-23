@@ -6,6 +6,7 @@ import { createApplication, updateApplication, deleteApplication, getApplication
 import { listInterviews, createInterview, deleteInterview } from '../api/interviews';
 import { listContacts, linkContact, unlinkContact, createContact } from '../api/contacts';
 import { STATUSES } from '../lib/applicationStatus';
+import { apiErrorMessage } from '../lib/apiError';
 import Field from './Field';
 import Button from './Button';
 
@@ -92,7 +93,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const save = useMutation({
     mutationFn: (body) => (isEdit ? updateApplication(application.id, body) : createApplication(body)),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); onClose(); },
-    onError: (e) => setError(e.response?.data?.error?.message || 'Could not save'),
+    onError: (e) => setError(apiErrorMessage(e, 'Could not save')),
   });
 
   const del = useMutation({
