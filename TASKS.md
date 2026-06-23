@@ -5,7 +5,9 @@ Plan: `docs/superpowers/plans/2026-06-23-frontend-v1.md`
 Design: `DESIGN.md`
 Master coordination: `../TASKS.md`
 
-> **Status (2026-06-23):** FE-0…FE-5 ✅ done — implemented TDD (15 tests across 8 suites, build verified) on `feat/frontend-v1`. Only **FE-6 (deploy)** remains.
+> **Status (2026-06-23):** FE-0…FE-5 ✅ + **v1.5 application-details drawer** ✅ — implemented TDD (27 tests across 9 suites, build verified), reviewed, and **merged to `main`**. Only **FE-6 (deploy)** remains.
+>
+> **v1.5 (application details):** right-side drawer to view/edit/create an application (company w/ inline create, salary, dates, source, description, notes) + its interviews; cards show company + salary. Plan: `docs/superpowers/plans/2026-06-23-application-details.md`.
 
 ## FE-0 — Scaffold ☑
 Vite + React, Tailwind v4, TanStack Query, axios client (`withCredentials`), Vitest + MSW.
