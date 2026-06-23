@@ -52,14 +52,36 @@ test('cards show the company name and salary chip', async () => {
 test('clicking a card open button opens the drawer pre-filled', async () => {
   server.use(
     http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Eng', status: 'Applied', company: null }])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Eng', status: 'Applied', company: null, contacts: [] })),
     http.get(`${API}/companies`, () => HttpResponse.json([])),
     http.get(`${API}/interviews`, () => HttpResponse.json([])),
+    http.get(`${API}/contacts`, () => HttpResponse.json([])),
   );
   renderPage();
   await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
   await userEvent.click(screen.getByRole('button', { name: /open backend eng/i }));
   await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
   expect(screen.getByLabelText(/position/i)).toHaveValue('Backend Eng');
+});
+
+test('search filters the board by position', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([
+    { id: 'a1', position: 'Backend Eng', status: 'Applied' },
+    { id: 'a2', position: 'Frontend Eng', status: 'Applied' },
+  ])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  expect(screen.getByText('Frontend Eng')).toBeInTheDocument();
+  await userEvent.type(screen.getByPlaceholderText(/search applications/i), 'front');
+  await waitFor(() => expect(screen.queryByText('Backend Eng')).not.toBeInTheDocument());
+  expect(screen.getByText('Frontend Eng')).toBeInTheDocument();
+});
+
+test('has no redundant quick-add "Add application" button', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([])));
+  renderPage();
+  await waitFor(() => expect(screen.getByRole('button', { name: /new application/i })).toBeInTheDocument());
+  expect(screen.queryByRole('button', { name: /add application/i })).not.toBeInTheDocument();
 });
 
 test('New application button opens the drawer in create mode', async () => {
