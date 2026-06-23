@@ -71,3 +71,28 @@ test('delete removes a contact', async () => {
   await waitFor(() => expect(screen.queryByText('Jane')).not.toBeInTheDocument());
   window.confirm.mockRestore();
 });
+
+test('delete refetches the list even while a search is active', async () => {
+  let items = [
+    { id: '1', name: 'Jane', position: '', company: null, email: '', linkedinUrl: '', followUpDate: null },
+    { id: '2', name: 'Janet', position: '', company: null, email: '', linkedinUrl: '', followUpDate: null },
+  ];
+  server.use(
+    http.get(`${API}/contacts`, ({ request }) => {
+      const term = new URL(request.url).searchParams.get('search');
+      const filtered = term ? items.filter((c) => c.name.toLowerCase().includes(term.toLowerCase())) : items;
+      return HttpResponse.json(filtered);
+    }),
+    http.delete(`${API}/contacts/1`, () => { items = items.filter((c) => c.id !== '1'); return new HttpResponse(null, { status: 204 }); }),
+  );
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  renderPage();
+  await userEvent.type(screen.getByPlaceholderText(/search contacts/i), 'jan');
+  await waitFor(() => expect(screen.getByText('Jane')).toBeInTheDocument());
+  expect(screen.getByText('Janet')).toBeInTheDocument();
+  // Delete 'Jane' (exact accessible name avoids matching 'Janet'); list is keyed ['contacts','jan'].
+  await userEvent.click(screen.getByRole('button', { name: 'Delete Jane' }));
+  await waitFor(() => expect(screen.queryByText('Jane')).not.toBeInTheDocument());
+  expect(screen.getByText('Janet')).toBeInTheDocument();
+  window.confirm.mockRestore();
+});

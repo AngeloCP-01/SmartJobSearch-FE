@@ -134,15 +134,18 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not unlink contact'),
   });
   const quickCreateContactM = useMutation({
-    mutationFn: () => createContact({ name: newContactName.trim() }),
-    onSuccess: async (c) => {
-      qc.invalidateQueries({ queryKey: ['contacts'] });
+    mutationFn: async () => {
+      const c = await createContact({ name: newContactName.trim() });
       await linkContact(application.id, c.id);
+      return c;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['contacts'] });
       qc.invalidateQueries({ queryKey: ['application', application.id] });
       setNewContactName('');
       setShowNewContact(false);
     },
-    onError: (e) => setError(e.response?.data?.error?.message || 'Could not create contact'),
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not add contact'),
   });
 
   function onSubmit(e) {

@@ -191,3 +191,19 @@ test('unlinks a contact from the application', async () => {
   await userEvent.click(await screen.findByRole('button', { name: /unlink jane recruiter/i }));
   await waitFor(() => expect(unlinked).toBe(true));
 });
+
+test('quick-create surfaces an error when linking fails', async () => {
+  server.use(
+    http.post(`${API}/contacts`, async ({ request }) => {
+      const b = await request.json();
+      return HttpResponse.json({ id: 'k9', name: b.name, company: null }, { status: 201 });
+    }),
+    http.post(`${API}/applications/a1/contacts`, () =>
+      HttpResponse.json({ error: { message: 'Link failed', code: 'CONFLICT' } }, { status: 409 })),
+  );
+  renderDrawer({ application: app });
+  await userEvent.click(await screen.findByRole('button', { name: /new contact/i }));
+  await userEvent.type(screen.getByLabelText(/new contact name/i), 'Quick Bob');
+  await userEvent.click(screen.getByRole('button', { name: /^create & link$/i }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/link failed/i));
+});

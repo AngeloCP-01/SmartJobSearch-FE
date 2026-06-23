@@ -104,3 +104,22 @@ test('delete asks for confirmation then DELETEs', async () => {
   expect(onClose).toHaveBeenCalled();
   window.confirm.mockRestore();
 });
+
+test('re-prefills the form when reopened with a different contact', async () => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const A = { ...contact, id: 'kA', name: 'Alice', position: 'A-pos' };
+  const B = { ...contact, id: 'kB', name: 'Bob', position: 'B-pos' };
+  const { rerender } = render(
+    <QueryClientProvider client={qc}>
+      <ContactDrawer open contact={A} onClose={() => {}} />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(screen.getByLabelText(/^name$/i)).toHaveValue('Alice'));
+  rerender(
+    <QueryClientProvider client={qc}>
+      <ContactDrawer open contact={B} onClose={() => {}} />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(screen.getByLabelText(/^name$/i)).toHaveValue('Bob'));
+  expect(screen.getByLabelText(/position/i)).toHaveValue('B-pos');
+});

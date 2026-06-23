@@ -72,8 +72,11 @@ export default function Contacts() {
                     </a>
                   )}
                   {c.followUpDate && (
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${isOverdue(c.followUpDate) ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}`}>
-                      <CalendarClock size={12} aria-hidden="true" /> {toDate(c.followUpDate)}
+                    <span
+                      aria-label={`Follow-up ${toDate(c.followUpDate)}${isOverdue(c.followUpDate) ? ' (overdue)' : ''}`}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${isOverdue(c.followUpDate) ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}`}
+                    >
+                      <CalendarClock size={12} aria-hidden="true" /> {toDate(c.followUpDate)}{isOverdue(c.followUpDate) ? ' · overdue' : ''}
                     </span>
                   )}
                 </div>
