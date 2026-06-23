@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   DndContext, useDraggable, useDroppable,
   PointerSensor, KeyboardSensor, useSensor, useSensors,
@@ -33,6 +33,8 @@ const fmtSalary = (min, max) => {
   return k(min ?? max);
 };
 
+const fmtDate = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);
+
 // Pure, unit-testable drop mapping. overId is the target column (a status id).
 export function applyDrop({ activeId, overId }, doUpdate) {
   if (!activeId || !overId) return undefined;
@@ -60,23 +62,40 @@ function Card({ app, onOpen }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: app.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
   const salary = fmtSalary(app.salaryMin, app.salaryMax);
+  const applied = fmtDate(app.applicationDate);
+  const downPos = useRef(null);
+
+  // Open on a genuine click, but not after a drag (pointer moved) and not on a
+  // keyboard-synthesized click (detail === 0) — Space/Enter belong to dnd-kit's
+  // keyboard drag, and the ↗ button stays the accessible open affordance.
+  const onPointerDownCapture = (e) => { downPos.current = { x: e.clientX, y: e.clientY }; };
+  const handleCardClick = (e) => {
+    if (e.detail === 0) return;
+    const d = downPos.current;
+    if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5) return;
+    onOpen(app);
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
+      onClick={handleCardClick}
+      onPointerDownCapture={onPointerDownCapture}
       className={`mb-2 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-sm transition-shadow
-        ${isDragging ? 'shadow-md ring-2 ring-sky-300' : ''}`}
+        hover:border-sky-200 ${isDragging ? 'shadow-md ring-2 ring-sky-300' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div {...listeners} {...attributes} aria-label={`${app.position}, ${label(app.status)}`} className="flex-1 cursor-grab text-slate-800">
           <p className="font-medium">{app.position}</p>
           {app.company && <p className="text-xs text-slate-500">{app.company.name}</p>}
           {salary && <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700">{salary}</span>}
+          {applied && <p className="mt-1 text-xs text-slate-400">Applied {applied}</p>}
         </div>
         <button
           type="button"
           aria-label={`Open ${app.position}`}
-          onClick={() => onOpen(app)}
+          onClick={(e) => { e.stopPropagation(); onOpen(app); }}
           className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer
             focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
         >

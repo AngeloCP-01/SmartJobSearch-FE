@@ -49,6 +49,29 @@ test('cards show the company name and salary chip', async () => {
   expect(screen.getByText(/90k/)).toBeInTheDocument();
 });
 
+test('cards show the applied date', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([
+    { id: 'a1', position: 'Backend Eng', status: 'Applied', applicationDate: '2026-06-23T00:00:00.000Z' },
+  ])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  expect(screen.getByText(/Applied 2026-06-23/)).toBeInTheDocument();
+});
+
+test('clicking the card body opens the drawer pre-filled', async () => {
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Eng', status: 'Applied', company: null }])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Eng', status: 'Applied', company: null, contacts: [] })),
+    http.get(`${API}/companies`, () => HttpResponse.json([])),
+    http.get(`${API}/interviews`, () => HttpResponse.json([])),
+    http.get(`${API}/contacts`, () => HttpResponse.json([])),
+  );
+  renderPage();
+  await userEvent.click(await screen.findByText('Backend Eng'));
+  await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+  expect(screen.getByLabelText(/position/i)).toHaveValue('Backend Eng');
+});
+
 test('clicking a card open button opens the drawer pre-filled', async () => {
   server.use(
     http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Eng', status: 'Applied', company: null }])),
