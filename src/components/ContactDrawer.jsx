@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Trash2 } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
 import { createContact, updateContact, deleteContact } from '../api/contacts';
+import { apiErrorMessage } from '../lib/apiError';
 import Field from './Field';
 import Button from './Button';
 
@@ -64,7 +65,7 @@ export default function ContactDrawer({ contact, open, onClose }) {
   const save = useMutation({
     mutationFn: (body) => (isEdit ? updateContact(contact.id, body) : createContact(body)),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['contacts'] }); onClose(); },
-    onError: (e) => setError(e.response?.data?.error?.message || 'Could not save'),
+    onError: (e) => setError(apiErrorMessage(e, 'Could not save')),
   });
   const del = useMutation({
     mutationFn: () => deleteContact(contact.id),

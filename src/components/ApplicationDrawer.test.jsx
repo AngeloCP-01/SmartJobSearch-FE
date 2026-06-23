@@ -55,6 +55,21 @@ test('saving an edit PATCHes the application and closes', async () => {
   expect(body.notes).toBe('updated');
 });
 
+test('shows the specific field error when the API returns validation details', async () => {
+  server.use(http.patch(`${API}/applications/a1`, () => HttpResponse.json({
+    error: {
+      message: 'Validation failed',
+      code: 'VALIDATION',
+      details: [{ path: 'source', message: 'String must contain at most 2000 character(s)' }],
+    },
+  }, { status: 400 })));
+  renderDrawer({ application: app });
+  await userEvent.clear(screen.getByLabelText(/notes/i));
+  await userEvent.type(screen.getByLabelText(/notes/i), 'x');
+  await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/source:/i));
+});
+
 test('create mode POSTs a new application', async () => {
   let body = null;
   server.use(http.post(`${API}/applications`, async ({ request }) => {
