@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Trash2 } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
-import { createApplication, updateApplication, deleteApplication } from '../api/applications';
+import { createApplication, updateApplication, deleteApplication, getApplication } from '../api/applications';
 import { listInterviews, createInterview, deleteInterview } from '../api/interviews';
+import { listContacts, linkContact, unlinkContact, createContact } from '../api/contacts';
 import { STATUSES } from '../lib/applicationStatus';
 import Field from './Field';
 import Button from './Button';
@@ -38,6 +39,9 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const [newCompanyName, setNewCompanyName] = useState('');
   const [ivType, setIvType] = useState('HR');
   const [ivInterviewer, setIvInterviewer] = useState('');
+  const [selectedContactId, setSelectedContactId] = useState('');
+  const [showNewContact, setShowNewContact] = useState(false);
+  const [newContactName, setNewContactName] = useState('');
   const drawerRef = useRef(null);
 
   useEffect(() => { setForm(initialForm(application)); setError(null); }, [application, open]);
@@ -70,6 +74,18 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     queryFn: () => listInterviews(application.id),
     enabled: open && isEdit,
   });
+  const { data: detail } = useQuery({
+    queryKey: ['application', application?.id],
+    queryFn: () => getApplication(application.id),
+    enabled: open && isEdit,
+  });
+  const linkedContacts = detail?.contacts || [];
+  const { data: allContacts = [] } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: () => listContacts(),
+    enabled: open && isEdit,
+  });
+  const linkableContacts = allContacts.filter((c) => !linkedContacts.some((lc) => lc.id === c.id));
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -105,6 +121,28 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     mutationFn: (id) => deleteInterview(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['interviews', application.id] }),
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not remove interview'),
+  });
+
+  const linkContactM = useMutation({
+    mutationFn: (contactId) => linkContact(application.id, contactId),
+    onSuccess: () => { setSelectedContactId(''); qc.invalidateQueries({ queryKey: ['application', application.id] }); },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not link contact'),
+  });
+  const unlinkContactM = useMutation({
+    mutationFn: (contactId) => unlinkContact(application.id, contactId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['application', application.id] }),
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not unlink contact'),
+  });
+  const quickCreateContactM = useMutation({
+    mutationFn: () => createContact({ name: newContactName.trim() }),
+    onSuccess: async (c) => {
+      qc.invalidateQueries({ queryKey: ['contacts'] });
+      await linkContact(application.id, c.id);
+      qc.invalidateQueries({ queryKey: ['application', application.id] });
+      setNewContactName('');
+      setShowNewContact(false);
+    },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not create contact'),
   });
 
   function onSubmit(e) {
@@ -236,6 +274,53 @@ export default function ApplicationDrawer({ application, open, onClose }) {
                 value={ivInterviewer} onChange={(e) => setIvInterviewer(e.target.value)} />
               <Button type="button" onClick={() => addInterview.mutate()}>Add interview</Button>
             </div>
+          </div>
+        )}
+
+        {isEdit && (
+          <div className="border-t border-sky-100 px-5 py-4">
+            <h3 className="mb-3 text-sm font-semibold text-slate-700">Contacts</h3>
+            <ul className="mb-3 space-y-1">
+              {linkedContacts.map((c) => (
+                <li key={c.id} className="flex items-center justify-between rounded-lg border border-sky-100 px-3 py-2 text-sm">
+                  <span>
+                    <span className="font-medium text-slate-800">{c.name}</span>
+                    {[c.position, c.company?.name].filter(Boolean).length > 0
+                      ? ` · ${[c.position, c.company?.name].filter(Boolean).join(' · ')}`
+                      : ''}
+                  </span>
+                  <button aria-label={`Unlink ${c.name}`} className="text-red-600 cursor-pointer" onClick={() => unlinkContactM.mutate(c.id)}>
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+              {linkedContacts.length === 0 && <li className="text-sm text-slate-400">No contacts linked yet.</li>}
+            </ul>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500">Link an existing contact</span>
+              <button type="button" className="text-xs font-medium text-sky-700 hover:underline cursor-pointer"
+                onClick={() => setShowNewContact((s) => !s)}>
+                {showNewContact ? 'Cancel' : 'New contact'}
+              </button>
+            </div>
+            {showNewContact ? (
+              <div className="flex gap-2">
+                <input aria-label="New contact name" placeholder="Contact name"
+                  className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  value={newContactName} onChange={(e) => setNewContactName(e.target.value)} />
+                <Button type="button" onClick={() => newContactName.trim() && quickCreateContactM.mutate()}>Create &amp; link</Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <select aria-label="Link a contact"
+                  className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  value={selectedContactId} onChange={(e) => setSelectedContactId(e.target.value)}>
+                  <option value="">Select a contact…</option>
+                  {linkableContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <Button type="button" disabled={!selectedContactId} onClick={() => selectedContactId && linkContactM.mutate(selectedContactId)}>Link</Button>
+              </div>
+            )}
           </div>
         )}
       </aside>
