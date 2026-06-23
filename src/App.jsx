@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 import Companies from './pages/Companies';
 import Contacts from './pages/Contacts';
 import Applications from './pages/Applications';
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/applications" element={<Applications />} />
