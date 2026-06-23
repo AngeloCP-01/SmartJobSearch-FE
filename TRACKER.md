@@ -15,8 +15,11 @@ Status legend: ☐ Not started · ◐ In progress · ☑ Done · ⛔ Blocked
 | FE-5 | Dashboard | BE-5 | ☑ | totals, by-status, upcoming interviews cards |
 | FE-6 | Deploy | BE-6 | ☐ | static host + VITE_API_URL (separate session) |
 
+## v1.5 — Application Details ☑ (2026-06-23)
+Right-side drawer to view/edit/create an application with all fields; company picker with **inline create**; the application's **interviews** listed with add/delete; Kanban cards show **company name + salary chip**; New-application + open-card buttons. Branch `feat/application-details`. (Backend side: `company` included on application responses + unlink — in the BE repo.)
+
 ## Tests
-15 passing across 8 suites (client interceptor, AuthContext, Login, ProtectedRoute, Companies, Applications, Interviews, Dashboard). Production build verified.
+26 passing across 9 suites (adds ApplicationDrawer + board-integration tests). Production build verified.
 
 ## In Flight
 _FE-0…FE-5 complete on branch `feat/frontend-v1`. Only FE-6 (deploy) remains._
