@@ -42,6 +42,23 @@ test('a 401 from /auth/login does NOT trigger a refresh (surfaces the real error
   expect(refreshCalled).toBe(false);
 });
 
+test('concurrent 401s share a single refresh call (no duplicate rotation)', async () => {
+  let refreshCount = 0;
+  setAccessToken('expired');
+  const ok = ({ request }) => (request.headers.get('authorization') === 'Bearer fresh'
+    ? HttpResponse.json({ ok: true })
+    : HttpResponse.json({ error: { message: 'x', code: 'UNAUTHORIZED' } }, { status: 401 }));
+  server.use(
+    http.get(`${API}/widget-a`, ok),
+    http.get(`${API}/widget-b`, ok),
+    http.post(`${API}/auth/refresh`, () => { refreshCount += 1; return HttpResponse.json({ accessToken: 'fresh' }); }),
+  );
+  const [a, b] = await Promise.all([api.get('/widget-a'), api.get('/widget-b')]);
+  expect(a.data).toEqual({ ok: true });
+  expect(b.data).toEqual({ ok: true });
+  expect(refreshCount).toBe(1);
+});
+
 test('when refresh fails it clears the token and rejects', async () => {
   setAccessToken('stale');
   server.use(
