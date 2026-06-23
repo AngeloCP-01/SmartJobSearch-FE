@@ -1,7 +1,7 @@
 import api from './client';
 
-export async function listInterviews() {
-  const { data } = await api.get('/interviews');
+export async function listInterviews(applicationId) {
+  const { data } = await api.get('/interviews', { params: applicationId ? { applicationId } : {} });
   return data;
 }
 export async function createInterview(body) {
