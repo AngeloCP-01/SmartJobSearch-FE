@@ -14,3 +14,15 @@ test('renders a Contacts nav link', () => {
   const links = screen.getAllByRole('link', { name: /contacts/i });
   expect(links.length).toBeGreaterThan(0);
 });
+
+test('renders an Analytics nav link', () => {
+  render(
+    <AuthProvider>
+      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Layout />
+      </MemoryRouter>
+    </AuthProvider>,
+  );
+  const links = screen.getAllByRole('link', { name: /analytics/i });
+  expect(links.length).toBeGreaterThan(0);
+});
