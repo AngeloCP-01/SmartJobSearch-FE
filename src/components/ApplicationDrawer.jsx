@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Trash2 } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
@@ -16,7 +16,7 @@ const num = (v) => (v === '' || v == null ? undefined : Number(v));
 function initialForm(app) {
   return {
     position: app?.position || '',
-    companyId: app?.companyId || '',
+    companyId: app?.companyId ?? app?.company?.id ?? '',
     status: app?.status || 'Draft',
     applicationDate: toDateInput(app?.applicationDate),
     salaryMin: app?.salaryMin ?? '',
@@ -38,13 +38,30 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const [newCompanyName, setNewCompanyName] = useState('');
   const [ivType, setIvType] = useState('HR');
   const [ivInterviewer, setIvInterviewer] = useState('');
+  const drawerRef = useRef(null);
 
   useEffect(() => { setForm(initialForm(application)); setError(null); }, [application, open]);
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const node = drawerRef.current;
+    const getFocusable = () => Array.from(
+      node?.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) || [],
+    );
+    const onKey = (e) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const els = getFocusable();
+      if (els.length === 0) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    node?.addEventListener('keydown', onKey);
+    getFocusable()[0]?.focus();
+    return () => node?.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
   const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => listCompanies(), enabled: open });
@@ -65,6 +82,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const del = useMutation({
     mutationFn: () => deleteApplication(application.id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); onClose(); },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not delete'),
   });
 
   const addCompany = useMutation({
@@ -75,15 +93,18 @@ export default function ApplicationDrawer({ application, open, onClose }) {
       setNewCompanyName('');
       setShowNewCompany(false);
     },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not create company'),
   });
 
   const addInterview = useMutation({
     mutationFn: () => createInterview({ applicationId: application.id, type: ivType, interviewer: ivInterviewer || undefined }),
-    onSuccess: () => { setIvInterviewer(''); qc.invalidateQueries({ queryKey: ['interviews'] }); },
+    onSuccess: () => { setIvInterviewer(''); qc.invalidateQueries({ queryKey: ['interviews', application.id] }); },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not add interview'),
   });
   const removeInterview = useMutation({
     mutationFn: (id) => deleteInterview(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['interviews'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['interviews', application.id] }),
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not remove interview'),
   });
 
   function onSubmit(e) {
@@ -111,6 +132,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     <div className="fixed inset-0 z-40">
       <div className="absolute inset-0 bg-slate-900/30" onClick={onClose} aria-hidden="true" />
       <aside
+        ref={drawerRef}
         role="dialog"
         aria-modal="true"
         aria-label={isEdit ? 'Edit application' : 'New application'}
@@ -166,11 +188,11 @@ export default function ApplicationDrawer({ application, open, onClose }) {
 
           <label className="block mb-4">
             <span className="block text-sm font-medium text-slate-700 mb-1.5">Job description</span>
-            <textarea className={inputClass} rows={3} value={form.jobDescription} onChange={(e) => set('jobDescription')(e.target.value)} />
+            <textarea name="jobDescription" className={inputClass} rows={3} value={form.jobDescription} onChange={(e) => set('jobDescription')(e.target.value)} />
           </label>
           <label className="block mb-4">
             <span className="block text-sm font-medium text-slate-700 mb-1.5">Notes</span>
-            <textarea className={inputClass} rows={3} value={form.notes} onChange={(e) => set('notes')(e.target.value)} />
+            <textarea name="notes" className={inputClass} rows={3} value={form.notes} onChange={(e) => set('notes')(e.target.value)} />
           </label>
 
           {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
@@ -178,7 +200,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
           <div className="flex items-center gap-2">
             <Button type="submit" disabled={save.isPending}>Save</Button>
             {isEdit && (
-              <Button type="button" variant="danger"
+              <Button type="button" variant="danger" disabled={del.isPending}
                 onClick={() => { if (window.confirm('Delete this application?')) del.mutate(); }}>
                 <Trash2 size={16} aria-hidden="true" /> Delete
               </Button>

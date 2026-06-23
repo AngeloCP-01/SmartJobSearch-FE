@@ -32,6 +32,12 @@ test('edit mode pre-fills the form from the application', async () => {
   expect(screen.getByLabelText(/notes/i)).toHaveValue('hi');
 });
 
+test('edit mode selects the linked company (from companyId or nested company.id)', async () => {
+  const linked = { ...app, companyId: 'c1', company: { id: 'c1', name: 'Acme' } };
+  renderDrawer({ application: linked });
+  await waitFor(() => expect(screen.getByRole('combobox', { name: /company/i })).toHaveValue('c1'));
+});
+
 test('saving an edit PATCHes the application and closes', async () => {
   let body = null;
   server.use(http.patch(`${API}/applications/a1`, async ({ request }) => {
@@ -112,6 +118,7 @@ test('lists and adds interviews for the application', async () => {
     }),
     http.post(`${API}/interviews`, async ({ request }) => {
       const b = await request.json();
+      expect(b.applicationId).toBe('a1');
       const created = { id: 'iv2', ...b };
       interviews.push(created);
       return HttpResponse.json(created, { status: 201 });
