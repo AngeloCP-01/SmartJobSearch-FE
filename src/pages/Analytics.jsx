@@ -53,7 +53,7 @@ export default function Analytics() {
 
       {isLoading && <p className="text-slate-500">Loading…</p>}
 
-      {isError && (
+      {isError && !data && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           Couldn’t load analytics. Please try again.
         </div>
