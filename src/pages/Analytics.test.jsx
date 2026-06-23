@@ -54,3 +54,25 @@ test('shows an error state when the request fails', async () => {
   renderPage();
   await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
 });
+
+test('renders the pipeline and over-time chart cards when there is data', async () => {
+  server.use(http.get(`${API}/analytics`, () => HttpResponse.json({
+    metrics: { totalApplications: 42, interviewRate: 0.45, offerRate: 0.07, rejectionRate: 0.19 },
+    funnel: FUNNEL.map((f, i) => ({ ...f, count: i })),
+    overTime: OVERTIME.map((b, i) => ({ ...b, count: i })),
+  })));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Pipeline')).toBeInTheDocument());
+  expect(screen.getByText('Applications over time')).toBeInTheDocument();
+});
+
+test('hides the charts in the empty state', async () => {
+  server.use(http.get(`${API}/analytics`, () => HttpResponse.json({
+    metrics: { totalApplications: 0, interviewRate: 0, offerRate: 0, rejectionRate: 0 },
+    funnel: FUNNEL, overTime: OVERTIME,
+  })));
+  renderPage();
+  await waitFor(() =>
+    expect(screen.getByText(/add applications to see analytics/i)).toBeInTheDocument());
+  expect(screen.queryByText('Pipeline')).not.toBeInTheDocument();
+});
