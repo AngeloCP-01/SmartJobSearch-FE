@@ -23,6 +23,8 @@ beforeEach(() => {
   server.use(
     http.get(`${API}/companies`, () => HttpResponse.json([{ id: 'c1', name: 'Acme' }])),
     http.get(`${API}/interviews`, () => HttpResponse.json([])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ ...app, contacts: [] })),
+    http.get(`${API}/contacts`, () => HttpResponse.json([])),
   );
 });
 
@@ -129,4 +131,79 @@ test('lists and adds interviews for the application', async () => {
   await userEvent.selectOptions(screen.getByLabelText(/add interview type/i), 'Technical');
   await userEvent.click(screen.getByRole('button', { name: /add interview/i }));
   await waitFor(() => expect(screen.getByText('Technical', { selector: 'span' })).toBeInTheDocument());
+});
+
+test('lists linked contacts from application detail', async () => {
+  server.use(http.get(`${API}/applications/a1`, () => HttpResponse.json({
+    ...app,
+    contacts: [{ id: 'k1', name: 'Jane Recruiter', position: 'Recruiter', company: { id: 'c1', name: 'Acme' } }],
+  })));
+  renderDrawer({ application: app });
+  expect(await screen.findByText('Jane Recruiter')).toBeInTheDocument();
+});
+
+test('links an existing contact to the application', async () => {
+  let linked = null;
+  server.use(
+    http.get(`${API}/contacts`, () => HttpResponse.json([{ id: 'k1', name: 'Jane Recruiter', position: 'Recruiter', company: null }])),
+    http.post(`${API}/applications/a1/contacts`, async ({ request }) => {
+      linked = await request.json();
+      return HttpResponse.json({ id: 'k1', name: 'Jane Recruiter', company: null }, { status: 201 });
+    }),
+  );
+  renderDrawer({ application: app });
+  await screen.findByRole('option', { name: 'Jane Recruiter' });
+  await userEvent.selectOptions(screen.getByLabelText(/link a contact/i), 'k1');
+  await userEvent.click(screen.getByRole('button', { name: /^link$/i }));
+  await waitFor(() => expect(linked).toEqual({ contactId: 'k1' }));
+});
+
+test('quick-creates a contact and links it', async () => {
+  let created = null;
+  let linked = null;
+  server.use(
+    http.post(`${API}/contacts`, async ({ request }) => {
+      created = await request.json();
+      return HttpResponse.json({ id: 'k9', name: created.name, company: null }, { status: 201 });
+    }),
+    http.post(`${API}/applications/a1/contacts`, async ({ request }) => {
+      linked = await request.json();
+      return HttpResponse.json({ id: 'k9', name: created.name, company: null }, { status: 201 });
+    }),
+  );
+  renderDrawer({ application: app });
+  await userEvent.click(await screen.findByRole('button', { name: /new contact/i }));
+  await userEvent.type(screen.getByLabelText(/new contact name/i), 'Quick Bob');
+  await userEvent.click(screen.getByRole('button', { name: /^create & link$/i }));
+  await waitFor(() => expect(created).toEqual({ name: 'Quick Bob' }));
+  await waitFor(() => expect(linked).toEqual({ contactId: 'k9' }));
+});
+
+test('unlinks a contact from the application', async () => {
+  let unlinked = false;
+  server.use(
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({
+      ...app, contacts: [{ id: 'k1', name: 'Jane Recruiter', position: 'Recruiter', company: null }],
+    })),
+    http.delete(`${API}/applications/a1/contacts/k1`, () => { unlinked = true; return new HttpResponse(null, { status: 204 }); }),
+  );
+  renderDrawer({ application: app });
+  await userEvent.click(await screen.findByRole('button', { name: /unlink jane recruiter/i }));
+  await waitFor(() => expect(unlinked).toBe(true));
+});
+
+test('quick-create surfaces an error when linking fails', async () => {
+  server.use(
+    http.post(`${API}/contacts`, async ({ request }) => {
+      const b = await request.json();
+      return HttpResponse.json({ id: 'k9', name: b.name, company: null }, { status: 201 });
+    }),
+    http.post(`${API}/applications/a1/contacts`, () =>
+      HttpResponse.json({ error: { message: 'Link failed', code: 'CONFLICT' } }, { status: 409 })),
+  );
+  renderDrawer({ application: app });
+  await userEvent.click(await screen.findByRole('button', { name: /new contact/i }));
+  await userEvent.type(screen.getByLabelText(/new contact name/i), 'Quick Bob');
+  await userEvent.click(screen.getByRole('button', { name: /^create & link$/i }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/link failed/i));
 });

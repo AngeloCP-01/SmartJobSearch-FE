@@ -4,6 +4,10 @@ export async function listApplications() {
   const { data } = await api.get('/applications');
   return data;
 }
+export async function getApplication(id) {
+  const { data } = await api.get(`/applications/${id}`);
+  return data;
+}
 export async function createApplication(body) {
   const { data } = await api.post('/applications', body);
   return data;
