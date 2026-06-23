@@ -28,10 +28,13 @@ New **Contacts** sidebar page (searchable list, follow-up pill) + `ContactDrawer
 - **Errors:** drawers surface the backend's per-field validation `details` (`src/lib/apiError.js`).
 
 ## Tests
-55 passing across 12 suites (adds Contacts/ContactDrawer/Layout + drawer/board/auth tests). Production build verified.
+62 passing across 13 suites (adds Analytics page tests — metrics, loading, empty, error, chart presence/absence — + the Analytics nav-link test). Production build verified.
+
+## v2 — Analytics (frontend slice) ☑ (2026-06-23, merged to `main`)
+New dedicated **Analytics** sidebar page (`/analytics`, placed right after Dashboard, `LineChart` icon) consuming `GET /api/analytics`. Four headline metric cards (total / interview / offer / rejection, rates as `%`) reusing the Dashboard card look, plus two **Recharts** charts: a horizontal **Pipeline** bar (count by status, per-status colors from DESIGN.md) and an **Applications over time** area chart (12 months). Loading / empty ("Add applications to see analytics") / error states. `src/api/analytics.js`; query key `['analytics']`; `recharts` added; jsdom `ResizeObserver` stub in `src/test/setup.js`. Spec in BE repo; plan: `docs/superpowers/plans/2026-06-23-analytics-frontend.md`.
 
 ## In Flight
-_v2 Contacts + post-Contacts UX/fixes merged to `main` (local only). **Deployment paused.** Next v2 slice: **Analytics** (then Reminders) — start in a new session via root `../V2-ANALYTICS-KICKOFF.md`. See root `../TRACKER.md` for the full v2 module status._
+_v2 Contacts + Analytics merged to `main` (local only). **Deployment paused.** Next v2 slice: **Reminders** (V2-3) — start in a new session. See root `../TRACKER.md` for the full v2 module status._
 
 ## Notes / Blockers
 - 2026-06-23 — FE-0…FE-5 implemented TDD on `feat/frontend-v1`. Design system in DESIGN.md.
