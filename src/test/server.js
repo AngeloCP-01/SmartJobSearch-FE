@@ -9,6 +9,12 @@ export const handlers = [
     HttpResponse.json({ error: { message: 'no session', code: 'UNAUTHORIZED' } }, { status: 401 })),
   http.get(`${API}/auth/me`, () =>
     HttpResponse.json({ error: { message: 'unauth', code: 'UNAUTHORIZED' } }, { status: 401 })),
+  http.get(`${API}/reminders`, () =>
+    HttpResponse.json({
+      interviews: { upcoming: [], overdue: [] },
+      followUps: { due: [], upcoming: [] },
+      counts: { total: 0, interviews: 0, followUps: 0 },
+    })),
 ];
 
 export const server = setupServer(...handlers);
