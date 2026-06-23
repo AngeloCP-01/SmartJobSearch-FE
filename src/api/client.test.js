@@ -30,6 +30,18 @@ test('on 401 it refreshes once and retries the original request', async () => {
   expect(calls).toBe(2);
 });
 
+test('a 401 from /auth/login does NOT trigger a refresh (surfaces the real error)', async () => {
+  let refreshCalled = false;
+  server.use(
+    http.post(`${API}/auth/login`, () => HttpResponse.json({ error: { message: 'Invalid credentials', code: 'UNAUTHORIZED' } }, { status: 401 })),
+    http.post(`${API}/auth/refresh`, () => { refreshCalled = true; return HttpResponse.json({ accessToken: 'fresh' }); }),
+  );
+  await expect(api.post('/auth/login', { email: 'a', password: 'b' })).rejects.toMatchObject({
+    response: { data: { error: { message: 'Invalid credentials' } } },
+  });
+  expect(refreshCalled).toBe(false);
+});
+
 test('when refresh fails it clears the token and rejects', async () => {
   setAccessToken('stale');
   server.use(

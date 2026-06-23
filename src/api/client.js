@@ -17,8 +17,11 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
     const status = error.response?.status;
-    const isRefreshCall = original?.url?.includes('/auth/refresh');
-    if (status === 401 && !isRefreshCall && original && !original._retried) {
+    // A 401 from these endpoints means "bad credentials / no session", not an
+    // expired access token — refreshing would mask the real error.
+    const noRefresh = ['/auth/login', '/auth/register', '/auth/refresh'];
+    const skipRefresh = noRefresh.some((p) => original?.url?.includes(p));
+    if (status === 401 && !skipRefresh && original && !original._retried) {
       original._retried = true;
       try {
         const { data } = await api.post('/auth/refresh');
