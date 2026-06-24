@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server, API } from '../test/server';
@@ -125,8 +125,9 @@ test('can create a company inline and it becomes selected', async () => {
   await waitFor(() => expect(screen.getByRole('combobox', { name: /company/i })).toHaveValue('c-new'));
 });
 
-test('lists and adds interviews for the application', async () => {
+test('lists and adds interviews for the application, including a scheduled date', async () => {
   const interviews = [{ id: 'iv1', applicationId: 'a1', type: 'HR', interviewer: 'Grace' }];
+  let postedBody = null;
   server.use(
     http.get(`${API}/interviews`, ({ request }) => {
       const url = new URL(request.url);
@@ -135,6 +136,7 @@ test('lists and adds interviews for the application', async () => {
     }),
     http.post(`${API}/interviews`, async ({ request }) => {
       const b = await request.json();
+      postedBody = b;
       expect(b.applicationId).toBe('a1');
       const created = { id: 'iv2', ...b };
       interviews.push(created);
@@ -144,8 +146,10 @@ test('lists and adds interviews for the application', async () => {
   renderDrawer({ application: app });
   await waitFor(() => expect(screen.getByText(/Grace/)).toBeInTheDocument());
   await userEvent.selectOptions(screen.getByLabelText(/add interview type/i), 'Technical');
+  fireEvent.change(screen.getByLabelText(/add interview scheduled date/i), { target: { value: '2026-06-26T14:00' } });
   await userEvent.click(screen.getByRole('button', { name: /add interview/i }));
   await waitFor(() => expect(screen.getByText('Technical', { selector: 'span' })).toBeInTheDocument());
+  expect(postedBody.scheduledAt).toBe('2026-06-26T14:00');
 });
 
 test('lists linked contacts from application detail', async () => {

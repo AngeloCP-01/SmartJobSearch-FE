@@ -39,6 +39,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const [showNewCompany, setShowNewCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [ivType, setIvType] = useState('HR');
+  const [ivScheduledAt, setIvScheduledAt] = useState('');
   const [ivInterviewer, setIvInterviewer] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
   const [showNewContact, setShowNewContact] = useState(false);
@@ -114,8 +115,8 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   });
 
   const addInterview = useMutation({
-    mutationFn: () => createInterview({ applicationId: application.id, type: ivType, interviewer: ivInterviewer || undefined }),
-    onSuccess: () => { setIvInterviewer(''); qc.invalidateQueries({ queryKey: ['interviews', application.id] }); },
+    mutationFn: () => createInterview({ applicationId: application.id, type: ivType, scheduledAt: ivScheduledAt || undefined, interviewer: ivInterviewer || undefined }),
+    onSuccess: () => { setIvInterviewer(''); setIvScheduledAt(''); qc.invalidateQueries({ queryKey: ['interviews', application.id] }); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not add interview'),
   });
   const removeInterview = useMutation({
@@ -267,12 +268,15 @@ export default function ApplicationDrawer({ application, open, onClose }) {
               ))}
               {interviews.length === 0 && <li className="text-sm text-slate-400">No interviews yet.</li>}
             </ul>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select aria-label="Add interview type"
                 className="rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 value={ivType} onChange={(e) => setIvType(e.target.value)}>
                 {INTERVIEW_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
+              <input aria-label="Add interview scheduled date" type="datetime-local"
+                className="rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                value={ivScheduledAt} onChange={(e) => setIvScheduledAt(e.target.value)} />
               <input aria-label="Add interview interviewer" placeholder="Interviewer"
                 className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 value={ivInterviewer} onChange={(e) => setIvInterviewer(e.target.value)} />
