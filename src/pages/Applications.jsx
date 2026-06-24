@@ -54,7 +54,10 @@ export function moveMutationOptions(qc) {
       return { prev };
     },
     onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(['applications'], ctx.prev); },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['applications'] }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] });
+      qc.invalidateQueries({ queryKey: ['activity'] });
+    },
   };
 }
 
