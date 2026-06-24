@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Trash2 } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
 import { createApplication, updateApplication, deleteApplication, getApplication } from '../api/applications';
-import { listInterviews, createInterview, deleteInterview } from '../api/interviews';
+import { listInterviews, createInterview, updateInterview, deleteInterview } from '../api/interviews';
 import { listContacts, linkContact, unlinkContact, createContact } from '../api/contacts';
 import { STATUSES } from '../lib/applicationStatus';
 import { apiErrorMessage } from '../lib/apiError';
@@ -11,6 +11,12 @@ import Field from './Field';
 import Button from './Button';
 
 const INTERVIEW_TYPES = ['HR', 'Technical', 'Managerial', 'Final'];
+const INTERVIEW_RESULTS = ['Pending', 'Passed', 'Failed'];
+const RESULT_STYLES = {
+  Passed: 'bg-emerald-100 text-emerald-800',
+  Failed: 'bg-red-100 text-red-800',
+  Pending: 'bg-amber-100 text-amber-800',
+};
 
 const toDateInput = (v) => (v ? new Date(v).toISOString().slice(0, 10) : '');
 const num = (v) => (v === '' || v == null ? undefined : Number(v));
@@ -123,6 +129,11 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     mutationFn: (id) => deleteInterview(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['interviews', application.id] }),
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not remove interview'),
+  });
+  const setInterviewResult = useMutation({
+    mutationFn: ({ id, result }) => updateInterview(id, { result }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['interviews', application.id] }),
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not update interview'),
   });
 
   const linkContactM = useMutation({
@@ -261,9 +272,21 @@ export default function ApplicationDrawer({ application, open, onClose }) {
                     <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">{i.type}</span>
                     {i.interviewer ? ` · ${i.interviewer}` : ''}
                   </span>
-                  <button aria-label="Delete interview" className="text-red-600 cursor-pointer" onClick={() => removeInterview.mutate(i.id)}>
-                    <Trash2 size={14} aria-hidden="true" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      aria-label={`Result for ${i.type}${i.interviewer ? ` with ${i.interviewer}` : ''}`}
+                      className={`rounded-full border-0 px-2 py-0.5 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${RESULT_STYLES[i.result] || 'bg-slate-100 text-slate-600'}`}
+                      value={i.result || ''}
+                      disabled={setInterviewResult.isPending}
+                      onChange={(e) => setInterviewResult.mutate({ id: i.id, result: e.target.value })}
+                    >
+                      <option value="" disabled>Set result…</option>
+                      {INTERVIEW_RESULTS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <button aria-label="Delete interview" className="text-red-600 cursor-pointer" onClick={() => removeInterview.mutate(i.id)}>
+                      <Trash2 size={14} aria-hidden="true" />
+                    </button>
+                  </div>
                 </li>
               ))}
               {interviews.length === 0 && <li className="text-sm text-slate-400">No interviews yet.</li>}

@@ -152,6 +152,24 @@ test('lists and adds interviews for the application, including a scheduled date'
   expect(postedBody.scheduledAt).toBe('2026-06-26T14:00');
 });
 
+test('sets an interview result from the drawer', async () => {
+  let patchedBody = null;
+  const interviews = [{ id: 'iv1', applicationId: 'a1', type: 'HR', interviewer: 'Grace', result: null }];
+  server.use(
+    http.get(`${API}/interviews`, () => HttpResponse.json(interviews)),
+    http.patch(`${API}/interviews/iv1`, async ({ request }) => {
+      patchedBody = await request.json();
+      interviews[0] = { ...interviews[0], ...patchedBody };
+      return HttpResponse.json(interviews[0]);
+    }),
+  );
+  renderDrawer({ application: app });
+  await waitFor(() => expect(screen.getByText(/Grace/)).toBeInTheDocument());
+  fireEvent.change(screen.getByLabelText('Result for HR with Grace'), { target: { value: 'Failed' } });
+  await waitFor(() => expect(patchedBody).toEqual({ result: 'Failed' }));
+  await waitFor(() => expect(screen.getByLabelText('Result for HR with Grace')).toHaveValue('Failed'));
+});
+
 test('lists linked contacts from application detail', async () => {
   server.use(http.get(`${API}/applications/a1`, () => HttpResponse.json({
     ...app,
