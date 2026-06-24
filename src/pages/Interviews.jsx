@@ -19,6 +19,7 @@ export default function Interviews() {
   const qc = useQueryClient();
   const [applicationId, setApplicationId] = useState('');
   const [type, setType] = useState('HR');
+  const [scheduledAt, setScheduledAt] = useState('');
   const [interviewer, setInterviewer] = useState('');
 
   const { data: interviews = [] } = useQuery({ queryKey: ['interviews'], queryFn: () => listInterviews() });
@@ -28,7 +29,7 @@ export default function Interviews() {
 
   const create = useMutation({
     mutationFn: createInterview,
-    onSuccess: () => { setInterviewer(''); qc.invalidateQueries({ queryKey: ['interviews'] }); },
+    onSuccess: () => { setInterviewer(''); setScheduledAt(''); qc.invalidateQueries({ queryKey: ['interviews'] }); },
   });
   const remove = useMutation({
     mutationFn: deleteInterview,
@@ -38,7 +39,7 @@ export default function Interviews() {
   function onSubmit(e) {
     e.preventDefault();
     if (!applicationId) return;
-    create.mutate({ applicationId, type, interviewer: interviewer || undefined });
+    create.mutate({ applicationId, type, scheduledAt: scheduledAt || undefined, interviewer: interviewer || undefined });
   }
 
   return (
@@ -53,6 +54,13 @@ export default function Interviews() {
         <select className={selectClass} aria-label="Interview type" value={type} onChange={(e) => setType(e.target.value)}>
           {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
+        <input
+          type="datetime-local"
+          className={selectClass}
+          aria-label="Scheduled date"
+          value={scheduledAt}
+          onChange={(e) => setScheduledAt(e.target.value)}
+        />
         <input
           className="flex-1 min-w-40 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           placeholder="Interviewer (optional)"
