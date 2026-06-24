@@ -43,6 +43,25 @@ test('submitting with a scheduled date sends scheduledAt to the API', async () =
   expect(postedBody.scheduledAt).toBe('2026-06-26T14:00');
 });
 
+test('setting an interview result sends a PATCH and updates the row', async () => {
+  let patchedBody = null;
+  const interviews = [{ id: 'i1', applicationId: 'a1', type: 'HR', interviewer: 'Grace', result: null }];
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Eng' }])),
+    http.get(`${API}/interviews`, () => HttpResponse.json(interviews)),
+    http.patch(`${API}/interviews/i1`, async ({ request }) => {
+      patchedBody = await request.json();
+      interviews[0] = { ...interviews[0], ...patchedBody };
+      return HttpResponse.json(interviews[0]);
+    }),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Grace')).toBeInTheDocument());
+  fireEvent.change(screen.getByLabelText('Result for Eng'), { target: { value: 'Passed' } });
+  await waitFor(() => expect(patchedBody).toEqual({ result: 'Passed' }));
+  await waitFor(() => expect(screen.getByLabelText('Result for Eng')).toHaveValue('Passed'));
+});
+
 test('lists all interviews without sending a bogus applicationId param', async () => {
   let requestedUrl = null;
   server.use(
