@@ -21,7 +21,7 @@ export default function Interviews() {
   const [type, setType] = useState('HR');
   const [interviewer, setInterviewer] = useState('');
 
-  const { data: interviews = [] } = useQuery({ queryKey: ['interviews'], queryFn: listInterviews });
+  const { data: interviews = [] } = useQuery({ queryKey: ['interviews'], queryFn: () => listInterviews() });
   const { data: applications = [] } = useQuery({ queryKey: ['applications'], queryFn: listApplications });
 
   const positionFor = (id) => applications.find((a) => a.id === id)?.position;
