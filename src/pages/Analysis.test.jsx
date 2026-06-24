@@ -27,7 +27,8 @@ function renderPage() {
 
 test('runs an analysis and renders the report', async () => {
   server.use(
-    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' }])),
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' })),
     http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
     http.get(`${API}/analysis`, () => HttpResponse.json([])),
     http.post(`${API}/analysis`, () => HttpResponse.json({ id: 'an1', atsScore: 82, matchScore: 67, report: REPORT, createdAt: new Date().toISOString() }, { status: 201 })),
@@ -53,9 +54,23 @@ test('renders a history list', async () => {
   await waitFor(() => expect(screen.getByText('Backend Resume')).toBeInTheDocument());
 });
 
+test('shows the no-job-description note when the selected application has no JD', async () => {
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: null })),
+    http.get(`${API}/documents`, () => HttpResponse.json([])),
+    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByRole('option', { name: /Backend Engineer/ })).toBeInTheDocument());
+  await userEvent.selectOptions(screen.getByLabelText(/application/i), 'a1');
+  await waitFor(() => expect(screen.getByText(/no job description/i)).toBeInTheDocument());
+});
+
 test('shows an error banner if the run fails', async () => {
   server.use(
-    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' }])),
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' })),
     http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
     http.get(`${API}/analysis`, () => HttpResponse.json([])),
     http.post(`${API}/analysis`, () => HttpResponse.json({ error: { message: 'boom', code: 'X' } }, { status: 500 })),

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScanSearch } from 'lucide-react';
-import { listApplications } from '../api/applications';
+import { listApplications, getApplication } from '../api/applications';
 import { listDocuments } from '../api/documents';
 import { runAnalysis, listAnalyses, getAnalysis, deleteAnalysis } from '../api/analysis';
 import AnalysisReport from '../components/AnalysisReport';
@@ -19,9 +19,13 @@ export default function Analysis() {
   const { data: applications = [] } = useQuery({ queryKey: ['applications'], queryFn: listApplications });
   const { data: documents = [] } = useQuery({ queryKey: ['documents'], queryFn: () => listDocuments() });
   const { data: history = [] } = useQuery({ queryKey: ['analyses'], queryFn: listAnalyses });
-
-  const selectedApp = applications.find((a) => a.id === applicationId);
-  const noJd = selectedApp && !selectedApp.jobDescription;
+  // jobDescription is a detail-only field, not on the slim list items — fetch the selected app.
+  const { data: appDetail } = useQuery({
+    queryKey: ['application', applicationId],
+    queryFn: () => getApplication(applicationId),
+    enabled: Boolean(applicationId),
+  });
+  const noJd = Boolean(appDetail) && !appDetail.jobDescription;
 
   const run = useMutation({
     mutationFn: () => runAnalysis({ applicationId, documentId }),
@@ -30,11 +34,15 @@ export default function Analysis() {
   });
   const openHistory = useMutation({
     mutationFn: (id) => getAnalysis(id),
-    onSuccess: (data) => setCurrent(data),
+    onSuccess: (data) => { setCurrent(data); setError(null); },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not open that analysis'),
   });
   const remove = useMutation({
     mutationFn: (id) => deleteAnalysis(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['analyses'] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ['analyses'] });
+      setCurrent((c) => (c && c.id === id ? null : c)); // drop the report if its analysis was deleted
+    },
   });
 
   function onRun(e) {
@@ -82,7 +90,8 @@ export default function Analysis() {
                   <span className="font-medium text-slate-800">{h.documentName}</span>
                   <span className="text-slate-500"> · {h.position || '—'} · ATS {h.atsScore} · Match {h.matchScore ?? 'N/A'}</span>
                 </button>
-                <button aria-label={`Delete analysis of ${h.documentName}`} className="text-red-600 cursor-pointer"
+                <button type="button" aria-label={`Delete analysis of ${h.documentName}`}
+                  className="text-red-600 cursor-pointer disabled:opacity-50" disabled={remove.isPending}
                   onClick={() => remove.mutate(h.id)}>Delete</button>
               </li>
             ))}

@@ -73,7 +73,7 @@ export default function AnalysisReport({ report, atsScore, matchScore }) {
           <ul className="space-y-2">
             {suggestions.map((s, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                <span className={`mt-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${sevClass[s.severity]}`}>{s.severity}</span>
+                <span className={`mt-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${sevClass[s.severity] || sevClass.low}`}>{s.severity}</span>
                 <span>{s.text}</span>
               </li>
             ))}
