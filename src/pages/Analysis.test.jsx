@@ -82,3 +82,39 @@ test('shows an error banner if the run fails', async () => {
   await userEvent.click(screen.getByRole('button', { name: /run analysis/i }));
   await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
 });
+
+test('AI toggle is disabled when the server has no key', async () => {
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API}/documents`, () => HttpResponse.json([])),
+    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API}/analysis/config`, () => HttpResponse.json({ aiAvailable: false })),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByLabelText(/use ai/i)).toBeDisabled());
+});
+
+test('with AI available, checking the toggle posts useAi:true and shows the AI badge', async () => {
+  let postedUseAi = null;
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Rust' })),
+    http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
+    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API}/analysis/config`, () => HttpResponse.json({ aiAvailable: true })),
+    http.post(`${API}/analysis`, async ({ request }) => {
+      postedUseAi = (await request.json()).useAi;
+      return HttpResponse.json({ id: 'an1', atsScore: 82, matchScore: 70,
+        report: { ...REPORT, meta: { ...REPORT.meta, aiUsed: true, aiModel: 'test/model:free' } }, createdAt: new Date().toISOString() }, { status: 201 });
+    }),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByLabelText(/use ai/i)).toBeEnabled());
+  await userEvent.selectOptions(screen.getByLabelText(/application/i), 'a1');
+  await userEvent.selectOptions(screen.getByLabelText(/résumé|resume/i), 'd1');
+  await userEvent.click(screen.getByLabelText(/use ai/i));
+  expect(screen.getByText(/sends your résumé text/i)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /run analysis/i }));
+  await waitFor(() => expect(postedUseAi).toBe(true));
+  await waitFor(() => expect(screen.getByText(/AI-assisted match/i)).toBeInTheDocument());
+});
