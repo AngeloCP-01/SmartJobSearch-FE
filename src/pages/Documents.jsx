@@ -19,7 +19,9 @@ function saveBlob(blob, filename) {
   const a = document.createElement('a');
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
+  // Defer the revoke: revoking synchronously can invalidate the URL before the
+  // browser has finished reading the blob, producing an empty/failed download.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 const inputClass = 'rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500';
@@ -64,7 +66,10 @@ export default function Documents() {
   }
 
   function onDownload(doc) {
-    downloadDocument(doc.id).then((blob) => saveBlob(blob, doc.originalFilename));
+    setError(null);
+    downloadDocument(doc.id)
+      .then((blob) => saveBlob(blob, doc.originalFilename))
+      .catch(() => setError(`Could not download ${doc.name}. Please try again.`));
   }
 
   return (

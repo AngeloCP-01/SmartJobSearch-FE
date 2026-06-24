@@ -67,6 +67,18 @@ test('downloads a document via the file endpoint', async () => {
   await waitFor(() => expect(downloaded).toBe(true));
 });
 
+test('shows an error if a download fails', async () => {
+  server.use(
+    http.get(`${API}/documents`, () => HttpResponse.json(DOCS)),
+    http.get(`${API}/documents/d1/file`, () =>
+      HttpResponse.json({ error: { message: 'boom', code: 'SERVER_ERROR' } }, { status: 500 })),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Resume v2')).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /download backend resume v2/i }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/could not download/i));
+});
+
 test('deletes a document', async () => {
   let deleted = false;
   server.use(
