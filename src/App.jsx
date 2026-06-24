@@ -9,6 +9,7 @@ import Reminders from './pages/Reminders';
 import Analytics from './pages/Analytics';
 import Companies from './pages/Companies';
 import Contacts from './pages/Contacts';
+import Documents from './pages/Documents';
 import Applications from './pages/Applications';
 import Interviews from './pages/Interviews';
 
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/contacts" element={<Contacts />} />
+          <Route path="/documents" element={<Documents />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/interviews" element={<Interviews />} />
         </Route>
