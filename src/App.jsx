@@ -11,6 +11,7 @@ import Companies from './pages/Companies';
 import Contacts from './pages/Contacts';
 import Documents from './pages/Documents';
 import Activity from './pages/Activity';
+import Analysis from './pages/Analysis';
 import Applications from './pages/Applications';
 import Interviews from './pages/Interviews';
 
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/activity" element={<Activity />} />
+          <Route path="/analysis" element={<Analysis />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/interviews" element={<Interviews />} />
         </Route>
