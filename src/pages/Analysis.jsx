@@ -77,7 +77,7 @@ export default function Analysis() {
           <Button type="submit" disabled={run.isPending}><ScanSearch size={16} aria-hidden="true" /> Run analysis</Button>
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
-          <input type="checkbox" aria-label="Use AI" checked={useAi} disabled={!aiAvailable}
+          <input type="checkbox" aria-label="Use AI analysis" checked={useAi && aiAvailable} disabled={!aiAvailable}
             onChange={(e) => setUseAi(e.target.checked)} className="h-4 w-4" />
           Use AI analysis
           {!aiAvailable && <span className="text-xs text-slate-400">(set an OpenRouter API key to enable)</span>}
