@@ -22,13 +22,13 @@ export function activityCopy(action, metadata = {}) {
 }
 
 export function relativeTime(iso, now = Date.now()) {
-  const sec = Math.round((now - new Date(iso).getTime()) / 1000);
+  const sec = Math.floor((now - new Date(iso).getTime()) / 1000);
   if (sec < 60) return 'just now';
-  const min = Math.round(sec / 60);
+  const min = Math.floor(sec / 60);
   if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
+  const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
+  const day = Math.floor(hr / 24);
   if (day < 7) return `${day}d ago`;
   return new Date(iso).toLocaleDateString();
 }

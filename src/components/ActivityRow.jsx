@@ -9,7 +9,9 @@ export default function ActivityRow({ item }) {
       </span>
       <div className="min-w-0">
         <p className="text-sm text-slate-800">{text}</p>
-        <p className="text-xs text-slate-400">{relativeTime(item.createdAt)}</p>
+        <time dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()} className="text-xs text-slate-400">
+          {relativeTime(item.createdAt)}
+        </time>
       </div>
     </li>
   );
