@@ -22,3 +22,19 @@ test('lists interviews with their type and interviewer', async () => {
   await waitFor(() => expect(screen.getByText('Grace')).toBeInTheDocument());
   expect(screen.getByText('Technical', { selector: 'span' })).toBeInTheDocument();
 });
+
+test('lists all interviews without sending a bogus applicationId param', async () => {
+  let requestedUrl = null;
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API}/interviews`, ({ request }) => {
+      requestedUrl = new URL(request.url);
+      return HttpResponse.json([]);
+    }),
+  );
+  renderPage();
+  await waitFor(() => expect(requestedUrl).not.toBeNull());
+  // The page lists every interview; React Query's context object must not leak in as
+  // applicationId (axios serializes the object as bracketed params: applicationId[client]=...).
+  expect(requestedUrl.search).not.toMatch(/applicationId/);
+});
