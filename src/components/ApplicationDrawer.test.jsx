@@ -25,6 +25,7 @@ beforeEach(() => {
     http.get(`${API}/interviews`, () => HttpResponse.json([])),
     http.get(`${API}/applications/a1`, () => HttpResponse.json({ ...app, contacts: [] })),
     http.get(`${API}/contacts`, () => HttpResponse.json([])),
+    http.get(`${API}/documents`, () => HttpResponse.json([])),
   );
 });
 
@@ -243,4 +244,44 @@ test('quick-create surfaces an error when linking fails', async () => {
   await userEvent.type(screen.getByLabelText(/new contact name/i), 'Quick Bob');
   await userEvent.click(screen.getByRole('button', { name: /^create & link$/i }));
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/link failed/i));
+});
+
+test('lists and links documents in the application drawer', async () => {
+  let linkedId = null;
+  server.use(
+    http.get(`${API}/documents`, () => HttpResponse.json([
+      { id: 'd1', name: 'My Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 100 },
+    ])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({
+      ...app,
+      contacts: [],
+      documents: [{ id: 'd2', name: 'Linked CV', type: 'Resume', originalFilename: 'cv.pdf', mimeType: 'application/pdf', sizeBytes: 50 }],
+    })),
+    http.post(`${API}/applications/a1/documents`, async ({ request }) => {
+      linkedId = (await request.json()).documentId;
+      return HttpResponse.json({ id: 'd1', name: 'My Resume', type: 'Resume' }, { status: 201 });
+    }),
+  );
+  renderDrawer({ application: app });
+  expect(await screen.findByText('Linked CV')).toBeInTheDocument();
+  await userEvent.selectOptions(screen.getByLabelText(/link a document/i), 'd1');
+  await userEvent.click(screen.getByRole('button', { name: /^link document$/i }));
+  await waitFor(() => expect(linkedId).toBe('d1'));
+});
+
+test('unlinks a document in the application drawer', async () => {
+  let unlinked = false;
+  server.use(
+    http.get(`${API}/documents`, () => HttpResponse.json([])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({
+      ...app,
+      contacts: [],
+      documents: [{ id: 'd2', name: 'Linked CV', type: 'Resume', originalFilename: 'cv.pdf', mimeType: 'application/pdf', sizeBytes: 50 }],
+    })),
+    http.delete(`${API}/applications/a1/documents/d2`, () => { unlinked = true; return new HttpResponse(null, { status: 204 }); }),
+  );
+  renderDrawer({ application: app });
+  expect(await screen.findByText('Linked CV')).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /unlink linked cv/i }));
+  await waitFor(() => expect(unlinked).toBe(true));
 });

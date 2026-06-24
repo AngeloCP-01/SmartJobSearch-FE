@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, CalendarClock, LogOut, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, CalendarClock, LogOut, Briefcase } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
 import { fetchReminders } from '../api/reminders';
@@ -11,6 +11,7 @@ const NAV = [
   { to: '/applications', label: 'Applications', icon: KanbanSquare },
   { to: '/companies', label: 'Companies', icon: Building2 },
   { to: '/contacts', label: 'Contacts', icon: Users },
+  { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/interviews', label: 'Interviews', icon: CalendarClock },
 ];
 

@@ -5,6 +5,7 @@ import { listCompanies, createCompany } from '../api/companies';
 import { createApplication, updateApplication, deleteApplication, getApplication } from '../api/applications';
 import { listInterviews, createInterview, updateInterview, deleteInterview } from '../api/interviews';
 import { listContacts, linkContact, unlinkContact, createContact } from '../api/contacts';
+import { listDocuments, linkDocument, unlinkDocument } from '../api/documents';
 import { STATUSES } from '../lib/applicationStatus';
 import { apiErrorMessage } from '../lib/apiError';
 import Field from './Field';
@@ -48,6 +49,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const [ivScheduledAt, setIvScheduledAt] = useState('');
   const [ivInterviewer, setIvInterviewer] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
+  const [selectedDocumentId, setSelectedDocumentId] = useState('');
   const [showNewContact, setShowNewContact] = useState(false);
   const [newContactName, setNewContactName] = useState('');
   const drawerRef = useRef(null);
@@ -94,6 +96,13 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     enabled: open && isEdit,
   });
   const linkableContacts = allContacts.filter((c) => !linkedContacts.some((lc) => lc.id === c.id));
+  const linkedDocuments = detail?.documents || [];
+  const { data: allDocuments = [] } = useQuery({
+    queryKey: ['documents'],
+    queryFn: () => listDocuments(),
+    enabled: open && isEdit,
+  });
+  const linkableDocuments = allDocuments.filter((d) => !linkedDocuments.some((ld) => ld.id === d.id));
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -159,6 +168,16 @@ export default function ApplicationDrawer({ application, open, onClose }) {
       setShowNewContact(false);
     },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not add contact'),
+  });
+  const linkDocumentM = useMutation({
+    mutationFn: (documentId) => linkDocument(application.id, documentId),
+    onSuccess: () => { setSelectedDocumentId(''); qc.invalidateQueries({ queryKey: ['application', application.id] }); },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not link document'),
+  });
+  const unlinkDocumentM = useMutation({
+    mutationFn: (documentId) => unlinkDocument(application.id, documentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['application', application.id] }),
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not unlink document'),
   });
 
   function onSubmit(e) {
@@ -352,6 +371,36 @@ export default function ApplicationDrawer({ application, open, onClose }) {
                 <Button type="button" disabled={!selectedContactId} onClick={() => selectedContactId && linkContactM.mutate(selectedContactId)}>Link</Button>
               </div>
             )}
+          </div>
+        )}
+
+        {isEdit && (
+          <div className="border-t border-sky-100 px-5 py-4">
+            <h3 className="mb-3 text-sm font-semibold text-slate-700">Documents</h3>
+            <ul className="mb-3 space-y-1">
+              {linkedDocuments.map((d) => (
+                <li key={d.id} className="flex items-center justify-between rounded-lg border border-sky-100 px-3 py-2 text-sm">
+                  <span>
+                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">{d.type}</span>
+                    {' '}
+                    <span className="font-medium text-slate-800">{d.name}</span>
+                  </span>
+                  <button aria-label={`Unlink ${d.name}`} className="text-red-600 cursor-pointer" onClick={() => unlinkDocumentM.mutate(d.id)}>
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+              {linkedDocuments.length === 0 && <li className="text-sm text-slate-400">No documents linked yet.</li>}
+            </ul>
+            <div className="flex gap-2">
+              <select aria-label="Link a document"
+                className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                value={selectedDocumentId} onChange={(e) => setSelectedDocumentId(e.target.value)}>
+                <option value="">Select a document…</option>
+                {linkableDocuments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+              <Button type="button" disabled={!selectedDocumentId} onClick={() => selectedDocumentId && linkDocumentM.mutate(selectedDocumentId)}>Link document</Button>
+            </div>
           </div>
         )}
       </aside>
