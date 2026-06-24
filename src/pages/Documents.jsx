@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Upload, Trash2, Download, FileText } from 'lucide-react';
+import { Search, Upload, Trash2, Download, Pencil, FileText } from 'lucide-react';
 import { listDocuments, createDocument, deleteDocument, downloadDocument } from '../api/documents';
+import DocumentDrawer from '../components/DocumentDrawer';
 import Button from '../components/Button';
 
 const TYPES = ['Resume', 'CoverLetter', 'Other'];
@@ -31,6 +32,7 @@ export default function Documents() {
   const [type, setType] = useState('Resume');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState(null);
+  const [editing, setEditing] = useState(null);
 
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', search],
@@ -127,6 +129,9 @@ export default function Documents() {
                 <Button variant="subtle" aria-label={`Download ${d.name}`} onClick={() => onDownload(d)}>
                   <Download size={16} aria-hidden="true" />
                 </Button>
+                <Button variant="subtle" aria-label={`Edit ${d.name}`} onClick={() => setEditing(d)}>
+                  <Pencil size={16} aria-hidden="true" />
+                </Button>
                 <Button variant="danger" aria-label={`Delete ${d.name}`}
                   onClick={() => { if (window.confirm(`Delete ${d.name}?`)) remove.mutate(d.id); }}>
                   <Trash2 size={16} aria-hidden="true" />
@@ -136,6 +141,8 @@ export default function Documents() {
           ))}
         </ul>
       ))}
+
+      <DocumentDrawer open={Boolean(editing)} document={editing} onClose={() => setEditing(null)} />
     </div>
   );
 }
