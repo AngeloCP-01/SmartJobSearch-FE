@@ -28,3 +28,19 @@ test('shows a parseability warning when extraction failed', () => {
   render(<AnalysisReport report={{ ...REPORT, meta: { ...REPORT.meta, extractionOk: false } }} atsScore={10} matchScore={null} />);
   expect(screen.getByRole('alert')).toHaveTextContent(/could not read|image-based|parse/i);
 });
+
+test('shows an AI badge when the report was AI-assisted', () => {
+  render(<AnalysisReport report={{ ...REPORT, meta: { ...REPORT.meta, aiUsed: true, aiModel: 'test/model:free' } }} atsScore={82} matchScore={67} aiRequested />);
+  expect(screen.getByText(/AI-assisted match/i)).toBeInTheDocument();
+});
+
+test('shows a fallback note when AI was requested but not used', () => {
+  render(<AnalysisReport report={{ ...REPORT, meta: { ...REPORT.meta, aiUsed: false } }} atsScore={82} matchScore={67} aiRequested />);
+  expect(screen.getByText(/AI was unavailable/i)).toBeInTheDocument();
+});
+
+test('no AI badge or fallback note for a plain deterministic report', () => {
+  render(<AnalysisReport report={{ ...REPORT, meta: { ...REPORT.meta, aiUsed: false } }} atsScore={82} matchScore={67} />);
+  expect(screen.queryByText(/AI-assisted match/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/AI was unavailable/i)).not.toBeInTheDocument();
+});
