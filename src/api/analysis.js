@@ -1,7 +1,11 @@
 import api from './client';
 
-export async function runAnalysis({ applicationId, documentId }) {
-  const { data } = await api.post('/analysis', { applicationId, documentId });
+export async function runAnalysis({ applicationId, documentId, useAi }) {
+  const { data } = await api.post('/analysis', { applicationId, documentId, useAi });
+  return data;
+}
+export async function getAnalysisConfig() {
+  const { data } = await api.get('/analysis/config');
   return data;
 }
 export async function listAnalyses() {

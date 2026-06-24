@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScanSearch } from 'lucide-react';
 import { listApplications, getApplication } from '../api/applications';
 import { listDocuments } from '../api/documents';
-import { runAnalysis, listAnalyses, getAnalysis, deleteAnalysis } from '../api/analysis';
+import { runAnalysis, listAnalyses, getAnalysis, deleteAnalysis, getAnalysisConfig } from '../api/analysis';
 import AnalysisReport from '../components/AnalysisReport';
 import Button from '../components/Button';
 
@@ -15,10 +15,13 @@ export default function Analysis() {
   const [documentId, setDocumentId] = useState('');
   const [current, setCurrent] = useState(null); // {atsScore, matchScore, report}
   const [error, setError] = useState(null);
+  const [useAi, setUseAi] = useState(false);
 
   const { data: applications = [] } = useQuery({ queryKey: ['applications'], queryFn: listApplications });
   const { data: documents = [] } = useQuery({ queryKey: ['documents'], queryFn: () => listDocuments() });
   const { data: history = [] } = useQuery({ queryKey: ['analyses'], queryFn: listAnalyses });
+  const { data: aiConfig } = useQuery({ queryKey: ['analysisConfig'], queryFn: getAnalysisConfig });
+  const aiAvailable = Boolean(aiConfig?.aiAvailable);
   // jobDescription is a detail-only field, not on the slim list items — fetch the selected app.
   const { data: appDetail } = useQuery({
     queryKey: ['application', applicationId],
@@ -28,13 +31,13 @@ export default function Analysis() {
   const noJd = Boolean(appDetail) && !appDetail.jobDescription;
 
   const run = useMutation({
-    mutationFn: () => runAnalysis({ applicationId, documentId }),
-    onSuccess: (data) => { setCurrent(data); setError(null); qc.invalidateQueries({ queryKey: ['analyses'] }); },
+    mutationFn: () => runAnalysis({ applicationId, documentId, useAi: useAi && aiAvailable }),
+    onSuccess: (data) => { setCurrent({ ...data, aiRequested: useAi && aiAvailable }); setError(null); qc.invalidateQueries({ queryKey: ['analyses'] }); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Analysis failed'),
   });
   const openHistory = useMutation({
     mutationFn: (id) => getAnalysis(id),
-    onSuccess: (data) => { setCurrent(data); setError(null); },
+    onSuccess: (data) => { setCurrent({ ...data, aiRequested: false }); setError(null); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not open that analysis'),
   });
   const remove = useMutation({
@@ -73,12 +76,23 @@ export default function Analysis() {
           </label>
           <Button type="submit" disabled={run.isPending}><ScanSearch size={16} aria-hidden="true" /> Run analysis</Button>
         </div>
+        <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+          <input type="checkbox" aria-label="Use AI analysis" checked={useAi && aiAvailable} disabled={!aiAvailable}
+            onChange={(e) => setUseAi(e.target.checked)} className="h-4 w-4" />
+          Use AI analysis
+          {!aiAvailable && <span className="text-xs text-slate-400">(set an OpenRouter API key to enable)</span>}
+        </label>
+        {useAi && aiAvailable && (
+          <p className="mt-1 text-xs text-slate-400">
+            AI analysis sends your résumé text and the job description to OpenRouter. Free models may be served by providers that can use inputs for training — review your OpenRouter privacy settings.
+          </p>
+        )}
         {noJd && <p className="mt-2 text-xs text-amber-700">This application has no job description — match scoring needs one; the ATS audit will still run.</p>}
         {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
         {run.isPending && <p className="mt-2 text-sm text-slate-500">Analyzing…</p>}
       </form>
 
-      {current && <AnalysisReport report={current.report} atsScore={current.atsScore} matchScore={current.matchScore} />}
+      {current && <AnalysisReport report={current.report} atsScore={current.atsScore} matchScore={current.matchScore} aiRequested={current.aiRequested} />}
 
       {history.length > 0 && (
         <div className="mt-8">

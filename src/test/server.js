@@ -18,6 +18,7 @@ export const handlers = [
   http.get(`${API}/activity`, () =>
     HttpResponse.json({ items: [], nextCursor: null })),
   http.get(`${API}/analysis`, () => HttpResponse.json([])),
+  http.get(`${API}/analysis/config`, () => HttpResponse.json({ aiAvailable: false })),
 ];
 
 export const server = setupServer(...handlers);

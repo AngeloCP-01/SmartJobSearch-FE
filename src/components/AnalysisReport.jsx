@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Sparkles } from 'lucide-react';
 import ScoreBadge from './ScoreBadge';
 
 const SUB_LABELS = {
@@ -15,7 +15,7 @@ function Chip({ entry, missing }) {
   );
 }
 
-export default function AnalysisReport({ report, atsScore, matchScore }) {
+export default function AnalysisReport({ report, atsScore, matchScore, aiRequested = false }) {
   if (!report) return null;
   const { meta, atsSubScores, matched = [], missing = [], suggestions = [] } = report;
 
@@ -33,6 +33,14 @@ export default function AnalysisReport({ report, atsScore, matchScore }) {
         <ScoreBadge label="Match score" value={matchScore} />
       </div>
       <p className="text-center text-xs text-slate-400">Guidance only — not a guaranteed ATS pass.</p>
+      {meta?.aiUsed && (
+        <p className="flex items-center justify-center gap-1 text-center text-xs text-sky-600">
+          <Sparkles size={12} aria-hidden="true" /> AI-assisted match{meta.aiModel ? ` · ${meta.aiModel}` : ''}
+        </p>
+      )}
+      {aiRequested && meta?.aiUsed === false && (
+        <p className="text-center text-xs text-amber-700">AI was unavailable — showing keyword-based match.</p>
+      )}
 
       <div className="rounded-xl border border-sky-100 bg-white p-5 shadow-sm">
         <h3 className="mb-3 text-sm font-semibold text-slate-700">ATS checks</h3>
