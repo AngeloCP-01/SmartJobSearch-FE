@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, CalendarClock } from 'lucide-react';
-import { listInterviews, createInterview, deleteInterview } from '../api/interviews';
+import { listInterviews, createInterview, updateInterview, deleteInterview } from '../api/interviews';
 import { listApplications } from '../api/applications';
 import Button from '../components/Button';
 
 const TYPES = ['HR', 'Technical', 'Managerial', 'Final'];
+const RESULTS = ['Pending', 'Passed', 'Failed'];
 
 const RESULT_STYLES = {
   Passed: 'bg-emerald-100 text-emerald-800',
@@ -30,6 +31,10 @@ export default function Interviews() {
   const create = useMutation({
     mutationFn: createInterview,
     onSuccess: () => { setInterviewer(''); setScheduledAt(''); qc.invalidateQueries({ queryKey: ['interviews'] }); },
+  });
+  const setResult = useMutation({
+    mutationFn: ({ id, result }) => updateInterview(id, { result }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['interviews'] }),
   });
   const remove = useMutation({
     mutationFn: deleteInterview,
@@ -88,13 +93,22 @@ export default function Interviews() {
                     {i.scheduledAt ? ` · ${new Date(i.scheduledAt).toLocaleDateString()}` : ''}
                   </p>
                 </div>
-                {i.result && (
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${RESULT_STYLES[i.result] || 'bg-slate-100 text-slate-600'}`}>{i.result}</span>
-                )}
               </div>
-              <Button variant="danger" aria-label="Delete interview" onClick={() => remove.mutate(i.id)}>
-                <Trash2 size={16} aria-hidden="true" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <select
+                  aria-label={`Result for ${positionFor(i.applicationId) || 'interview'}`}
+                  className={`rounded-full border-0 px-2.5 py-1 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${RESULT_STYLES[i.result] || 'bg-slate-100 text-slate-600'}`}
+                  value={i.result || ''}
+                  disabled={setResult.isPending}
+                  onChange={(e) => setResult.mutate({ id: i.id, result: e.target.value })}
+                >
+                  <option value="" disabled>Set result…</option>
+                  {RESULTS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <Button variant="danger" aria-label="Delete interview" onClick={() => remove.mutate(i.id)}>
+                  <Trash2 size={16} aria-hidden="true" />
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
