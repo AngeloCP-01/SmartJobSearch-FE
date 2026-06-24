@@ -15,6 +15,8 @@ export const handlers = [
       followUps: { due: [], upcoming: [] },
       counts: { total: 0, interviews: 0, followUps: 0 },
     })),
+  http.get(`${API}/activity`, () =>
+    HttpResponse.json({ items: [], nextCursor: null })),
 ];
 
 export const server = setupServer(...handlers);

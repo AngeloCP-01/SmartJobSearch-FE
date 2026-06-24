@@ -39,6 +39,11 @@ test('renders a Documents nav link', () => {
   expect(screen.getAllByRole('link', { name: /documents/i }).length).toBeGreaterThan(0);
 });
 
+test('renders an Activity nav link', () => {
+  renderLayout();
+  expect(screen.getAllByRole('link', { name: /activity/i }).length).toBeGreaterThan(0);
+});
+
 test('shows a badge with the reminders count', async () => {
   server.use(http.get(`${API}/reminders`, () => HttpResponse.json({
     interviews: { upcoming: [], overdue: [] },

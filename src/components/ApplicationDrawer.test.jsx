@@ -285,3 +285,19 @@ test('unlinks a document in the application drawer', async () => {
   await userEvent.click(screen.getByRole('button', { name: /unlink linked cv/i }));
   await waitFor(() => expect(unlinked).toBe(true));
 });
+
+test('shows the per-application activity timeline', async () => {
+  server.use(
+    http.get(`${API}/activity`, ({ request }) => {
+      const appId = new URL(request.url).searchParams.get('applicationId');
+      if (appId === 'a1') return HttpResponse.json({
+        items: [{ id: 'e1', action: 'ApplicationStatusChanged', applicationId: 'a1',
+          metadata: { position: 'Backend Eng', from: 'Draft', to: 'Applied' }, createdAt: new Date().toISOString() }],
+        nextCursor: null,
+      });
+      return HttpResponse.json({ items: [], nextCursor: null });
+    }),
+  );
+  renderDrawer({ application: app });
+  expect(await screen.findByText('Moved Backend Eng from Draft to Applied')).toBeInTheDocument();
+});

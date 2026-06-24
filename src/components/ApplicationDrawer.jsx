@@ -6,6 +6,8 @@ import { createApplication, updateApplication, deleteApplication, getApplication
 import { listInterviews, createInterview, updateInterview, deleteInterview } from '../api/interviews';
 import { listContacts, linkContact, unlinkContact, createContact } from '../api/contacts';
 import { listDocuments, linkDocument, unlinkDocument } from '../api/documents';
+import { fetchActivity } from '../api/activity';
+import ActivityRow from './ActivityRow';
 import { STATUSES } from '../lib/applicationStatus';
 import { apiErrorMessage } from '../lib/apiError';
 import Field from './Field';
@@ -103,18 +105,24 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     enabled: open && isEdit,
   });
   const linkableDocuments = allDocuments.filter((d) => !linkedDocuments.some((ld) => ld.id === d.id));
+  const { data: activity } = useQuery({
+    queryKey: ['activity', application?.id],
+    queryFn: () => fetchActivity({ applicationId: application.id }),
+    enabled: open && isEdit,
+  });
+  const activityItems = activity?.items || [];
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = useMutation({
     mutationFn: (body) => (isEdit ? updateApplication(application.id, body) : createApplication(body)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); onClose(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); qc.invalidateQueries({ queryKey: ['activity'] }); onClose(); },
     onError: (e) => setError(apiErrorMessage(e, 'Could not save')),
   });
 
   const del = useMutation({
     mutationFn: () => deleteApplication(application.id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); onClose(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); qc.invalidateQueries({ queryKey: ['activity'] }); onClose(); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not delete'),
   });
 
@@ -131,7 +139,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
 
   const addInterview = useMutation({
     mutationFn: () => createInterview({ applicationId: application.id, type: ivType, scheduledAt: ivScheduledAt || undefined, interviewer: ivInterviewer || undefined }),
-    onSuccess: () => { setIvInterviewer(''); setIvScheduledAt(''); qc.invalidateQueries({ queryKey: ['interviews', application.id] }); },
+    onSuccess: () => { setIvInterviewer(''); setIvScheduledAt(''); qc.invalidateQueries({ queryKey: ['interviews', application.id] }); qc.invalidateQueries({ queryKey: ['activity'] }); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not add interview'),
   });
   const removeInterview = useMutation({
@@ -141,13 +149,13 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   });
   const setInterviewResult = useMutation({
     mutationFn: ({ id, result }) => updateInterview(id, { result }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['interviews', application.id] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['interviews', application.id] }); qc.invalidateQueries({ queryKey: ['activity'] }); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not update interview'),
   });
 
   const linkContactM = useMutation({
     mutationFn: (contactId) => linkContact(application.id, contactId),
-    onSuccess: () => { setSelectedContactId(''); qc.invalidateQueries({ queryKey: ['application', application.id] }); },
+    onSuccess: () => { setSelectedContactId(''); qc.invalidateQueries({ queryKey: ['application', application.id] }); qc.invalidateQueries({ queryKey: ['activity'] }); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not link contact'),
   });
   const unlinkContactM = useMutation({
@@ -164,6 +172,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['contacts'] });
       qc.invalidateQueries({ queryKey: ['application', application.id] });
+      qc.invalidateQueries({ queryKey: ['activity'] });
       setNewContactName('');
       setShowNewContact(false);
     },
@@ -171,7 +180,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   });
   const linkDocumentM = useMutation({
     mutationFn: (documentId) => linkDocument(application.id, documentId),
-    onSuccess: () => { setSelectedDocumentId(''); qc.invalidateQueries({ queryKey: ['application', application.id] }); },
+    onSuccess: () => { setSelectedDocumentId(''); qc.invalidateQueries({ queryKey: ['application', application.id] }); qc.invalidateQueries({ queryKey: ['activity'] }); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not link document'),
   });
   const unlinkDocumentM = useMutation({
@@ -401,6 +410,17 @@ export default function ApplicationDrawer({ application, open, onClose }) {
               </select>
               <Button type="button" disabled={!selectedDocumentId} onClick={() => selectedDocumentId && linkDocumentM.mutate(selectedDocumentId)}>Link document</Button>
             </div>
+          </div>
+        )}
+
+        {isEdit && (
+          <div className="border-t border-sky-100 px-5 py-4">
+            <h3 className="mb-2 text-sm font-semibold text-slate-700">Activity</h3>
+            {activityItems.length === 0 ? (
+              <p className="text-sm text-slate-400">No activity yet.</p>
+            ) : (
+              <ul>{activityItems.map((item) => <ActivityRow key={item.id} item={item} />)}</ul>
+            )}
           </div>
         )}
       </aside>
