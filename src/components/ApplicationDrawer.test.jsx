@@ -286,6 +286,36 @@ test('unlinks a document in the application drawer', async () => {
   await waitFor(() => expect(unlinked).toBe(true));
 });
 
+test('shows the job description as a formatted read view and toggles to edit', async () => {
+  const withDesc = { ...app, jobDescription: 'Responsibilities:\n• Build APIs\n• Maintain CI/CD' };
+  renderDrawer({ application: withDesc });
+  await waitFor(() => expect(screen.getByLabelText(/position/i)).toHaveValue('Backend Eng'));
+  // Read view: text is shown, no editable textarea yet.
+  expect(screen.queryByPlaceholderText(/paste the job description/i)).not.toBeInTheDocument();
+  expect(screen.getByText(/Build APIs/)).toBeInTheDocument();
+  // Toggling to edit reveals the textarea with the exact pasted content preserved.
+  await userEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+  expect(screen.getByPlaceholderText(/paste the job description/i))
+    .toHaveValue('Responsibilities:\n• Build APIs\n• Maintain CI/CD');
+});
+
+test('new applications open the job description in edit mode', async () => {
+  renderDrawer({ application: null });
+  expect(await screen.findByPlaceholderText(/paste the job description/i)).toBeInTheDocument();
+});
+
+test('expands the job description into a modal and closes it without closing the drawer', async () => {
+  const onClose = vi.fn();
+  const withDesc = { ...app, jobDescription: 'A long job description with many lines.' };
+  renderDrawer({ application: withDesc, onClose });
+  await waitFor(() => expect(screen.getByLabelText(/position/i)).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /expand job description/i }));
+  expect(await screen.findByRole('dialog', { name: /^job description$/i })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /close job description/i }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: /^job description$/i })).not.toBeInTheDocument());
+  expect(onClose).not.toHaveBeenCalled();
+});
+
 test('shows the per-application activity timeline', async () => {
   server.use(
     http.get(`${API}/activity`, ({ request }) => {

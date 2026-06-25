@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Maximize2 } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
 import { createApplication, updateApplication, deleteApplication, getApplication } from '../api/applications';
 import { listInterviews, createInterview, updateInterview, deleteInterview } from '../api/interviews';
@@ -54,9 +54,24 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const [selectedDocumentId, setSelectedDocumentId] = useState('');
   const [showNewContact, setShowNewContact] = useState(false);
   const [newContactName, setNewContactName] = useState('');
+  const [editingDesc, setEditingDesc] = useState(!application?.jobDescription);
+  const [descExpanded, setDescExpanded] = useState(false);
   const drawerRef = useRef(null);
 
-  useEffect(() => { setForm(initialForm(application)); setError(null); }, [application, open]);
+  useEffect(() => {
+    setForm(initialForm(application));
+    setError(null);
+    setEditingDesc(!application?.jobDescription);
+    setDescExpanded(false);
+  }, [application, open]);
+
+  useEffect(() => {
+    if (!descExpanded) return undefined;
+    // Capture phase + stopPropagation so Escape closes the modal without also closing the drawer.
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setDescExpanded(false); } };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [descExpanded]);
   useEffect(() => {
     if (!open) return undefined;
     const node = drawerRef.current;
@@ -218,7 +233,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label={isEdit ? 'Edit application' : 'New application'}
-        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-xl"
+        className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col overflow-y-auto bg-white shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-sky-100 px-5 py-3">
           <h2 className="text-lg font-bold text-slate-900">{isEdit ? 'Application' : 'New application'}</h2>
@@ -268,10 +283,39 @@ export default function ApplicationDrawer({ application, open, onClose }) {
           </div>
           <Field label="Source" name="source" value={form.source} onChange={set('source')} />
 
-          <label className="block mb-4">
-            <span className="block text-sm font-medium text-slate-700 mb-1.5">Job description</span>
-            <textarea name="jobDescription" className={inputClass} rows={3} value={form.jobDescription} onChange={(e) => set('jobDescription')(e.target.value)} />
-          </label>
+          <div className="mb-4">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-700">Job description</span>
+              <div className="flex items-center gap-3">
+                <button type="button" className="text-xs font-medium text-sky-700 hover:underline cursor-pointer"
+                  onClick={() => setEditingDesc((s) => !s)}>
+                  {editingDesc ? 'Done' : 'Edit'}
+                </button>
+                {form.jobDescription && (
+                  <button type="button" aria-label="Expand job description"
+                    className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                    onClick={() => setDescExpanded(true)}>
+                    <Maximize2 size={15} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            </div>
+            {editingDesc ? (
+              <textarea name="jobDescription" className={inputClass} rows={12}
+                placeholder="Paste the job description here — line breaks and bullets are preserved."
+                value={form.jobDescription} onChange={(e) => set('jobDescription')(e.target.value)} />
+            ) : form.jobDescription ? (
+              <div className="max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+                {form.jobDescription}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-400">
+                No job description yet.{' '}
+                <button type="button" className="font-medium text-sky-700 hover:underline cursor-pointer"
+                  onClick={() => setEditingDesc(true)}>Add one</button>
+              </p>
+            )}
+          </div>
           <label className="block mb-4">
             <span className="block text-sm font-medium text-slate-700 mb-1.5">Notes</span>
             <textarea name="notes" className={inputClass} rows={3} value={form.notes} onChange={(e) => set('notes')(e.target.value)} />
@@ -424,6 +468,25 @@ export default function ApplicationDrawer({ application, open, onClose }) {
           </div>
         )}
       </aside>
+
+      {descExpanded && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog" aria-modal="true" aria-label="Job description">
+          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setDescExpanded(false)} aria-hidden="true" />
+          <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <h3 className="text-base font-semibold text-slate-900">{form.position || 'Job description'}</h3>
+              <button onClick={() => setDescExpanded(false)} aria-label="Close job description"
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 cursor-pointer">
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="overflow-y-auto whitespace-pre-wrap break-words px-6 py-5 text-[15px] leading-7 text-slate-700">
+              {form.jobDescription}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
