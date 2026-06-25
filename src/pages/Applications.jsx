@@ -9,6 +9,7 @@ import { listApplications, updateStatus } from '../api/applications';
 import Button from '../components/Button';
 import ApplicationDrawer from '../components/ApplicationDrawer';
 import { STATUSES } from '../lib/applicationStatus';
+import { formatSalaryRange } from '../lib/salary';
 
 export { STATUSES };
 
@@ -25,13 +26,6 @@ const STATUS_STYLES = {
 };
 
 const label = (status) => status.replace(/_/g, ' ');
-
-const fmtSalary = (min, max) => {
-  if (min == null && max == null) return null;
-  const k = (n) => `$${Math.round(n / 1000)}k`;
-  if (min != null && max != null) return `${k(min)}–${k(max)}`;
-  return k(min ?? max);
-};
 
 const fmtDate = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);
 
@@ -64,7 +58,7 @@ export function moveMutationOptions(qc) {
 function Card({ app, onOpen }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: app.id });
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined;
-  const salary = fmtSalary(app.salaryMin, app.salaryMax);
+  const salary = formatSalaryRange(app.salaryMin, app.salaryMax);
   const applied = fmtDate(app.applicationDate);
   const downPos = useRef(null);
 

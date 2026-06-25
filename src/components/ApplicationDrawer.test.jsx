@@ -316,6 +316,21 @@ test('expands the job description into a modal and closes it without closing the
   expect(onClose).not.toHaveBeenCalled();
 });
 
+test('shows an "Open posting" link when the source is a URL', async () => {
+  const withSource = { ...app, source: 'https://ph.indeed.com/viewjob?jk=abc' };
+  renderDrawer({ application: withSource });
+  const link = await screen.findByRole('link', { name: /open posting/i });
+  expect(link).toHaveAttribute('href', 'https://ph.indeed.com/viewjob?jk=abc');
+  expect(link).toHaveAttribute('target', '_blank');
+  expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+});
+
+test('hides the "Open posting" link when the source is not a URL', async () => {
+  renderDrawer({ application: { ...app, source: 'Referral from a friend' } });
+  await waitFor(() => expect(screen.getByLabelText(/position/i)).toBeInTheDocument());
+  expect(screen.queryByRole('link', { name: /open posting/i })).not.toBeInTheDocument();
+});
+
 test('shows the per-application activity timeline', async () => {
   server.use(
     http.get(`${API}/activity`, ({ request }) => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Trash2, Maximize2 } from 'lucide-react';
+import { X, Trash2, Maximize2, ExternalLink } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
 import { createApplication, updateApplication, deleteApplication, getApplication } from '../api/applications';
 import { listInterviews, createInterview, updateInterview, deleteInterview } from '../api/interviews';
@@ -23,6 +23,7 @@ const RESULT_STYLES = {
 
 const toDateInput = (v) => (v ? new Date(v).toISOString().slice(0, 10) : '');
 const num = (v) => (v === '' || v == null ? undefined : Number(v));
+const isHttpUrl = (v) => /^https?:\/\/\S+$/i.test((v || '').trim());
 
 function initialForm(app) {
   return {
@@ -281,7 +282,20 @@ export default function ApplicationDrawer({ application, open, onClose }) {
             <Field label="Min salary" name="salaryMin" type="number" value={form.salaryMin} onChange={set('salaryMin')} />
             <Field label="Max salary" name="salaryMax" type="number" value={form.salaryMax} onChange={set('salaryMax')} />
           </div>
-          <Field label="Source" name="source" value={form.source} onChange={set('source')} />
+          <div className="mb-4">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-700">Source</span>
+              {isHttpUrl(form.source) && (
+                <a href={form.source.trim()} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-sky-700 hover:underline">
+                  Open posting <ExternalLink size={13} aria-hidden="true" />
+                </a>
+              )}
+            </div>
+            <input name="source" aria-label="Source" className={inputClass}
+              placeholder="https://… link to the job posting"
+              value={form.source} onChange={(e) => set('source')(e.target.value)} />
+          </div>
 
           <div className="mb-4">
             <div className="mb-1.5 flex items-center justify-between">
