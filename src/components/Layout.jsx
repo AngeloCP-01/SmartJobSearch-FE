@@ -1,8 +1,22 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, CalendarClock, LogOut, Briefcase } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
 import { fetchReminders } from '../api/reminders';
+
+// A thin indeterminate bar pinned to the top whenever any query or mutation is
+// in flight — one place that gives feedback for every API call across the app
+// (especially Render's free-tier cold starts). Decorative: per-page Spinners
+// handle screen-reader announcements where there's no content yet.
+function TopProgressBar() {
+  const active = useIsFetching() + useIsMutating();
+  if (!active) return null;
+  return (
+    <div data-testid="top-progress" aria-hidden="true" className="fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-sky-100">
+      <div className="h-full w-1/3 bg-sky-600 animate-[indeterminate_1.1s_ease-in-out_infinite] motion-reduce:w-full motion-reduce:animate-pulse" />
+    </div>
+  );
+}
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -57,6 +71,7 @@ export default function Layout() {
   const reminderCount = reminders?.counts?.total ?? 0;
   return (
     <div className="min-h-dvh md:flex">
+      <TopProgressBar />
       {/* Sidebar (desktop) */}
       <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col gap-1 border-r border-sky-100 bg-white p-3">
         <div className="mb-4"><Brand /></div>

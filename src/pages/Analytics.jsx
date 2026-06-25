@@ -5,6 +5,7 @@ import {
   AreaChart, Area,
 } from 'recharts';
 import { fetchAnalytics } from '../api/analytics';
+import Spinner from '../components/Spinner';
 
 const pct = (r) => `${Math.round(r * 100)}%`;
 const prettify = (s) => s.replace(/_/g, ' ');
@@ -51,7 +52,7 @@ export default function Analytics() {
     <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Analytics</h1>
 
-      {isLoading && <p className="text-slate-500">Loading…</p>}
+      {isLoading && <Spinner center />}
 
       {isError && !data && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">

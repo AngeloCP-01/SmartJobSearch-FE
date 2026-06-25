@@ -49,6 +49,22 @@ test('renders an Analysis nav link', () => {
   expect(screen.getAllByRole('link', { name: /analysis/i }).length).toBeGreaterThan(0);
 });
 
+test('shows the global progress bar while a request is in flight', async () => {
+  server.use(http.get(`${API}/reminders`, () => new Promise(() => {}))); // never resolves
+  renderLayout();
+  expect(await screen.findByTestId('top-progress')).toBeInTheDocument();
+});
+
+test('hides the global progress bar once requests settle', async () => {
+  server.use(http.get(`${API}/reminders`, () => HttpResponse.json({
+    interviews: { upcoming: [], overdue: [] },
+    followUps: { due: [], upcoming: [] },
+    counts: { total: 0 },
+  })));
+  renderLayout();
+  await waitFor(() => expect(screen.queryByTestId('top-progress')).not.toBeInTheDocument());
+});
+
 test('shows a badge with the reminders count', async () => {
   server.use(http.get(`${API}/reminders`, () => HttpResponse.json({
     interviews: { upcoming: [], overdue: [] },

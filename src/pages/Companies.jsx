@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Trash2, Building2 } from 'lucide-react';
 import { listCompanies, createCompany, deleteCompany } from '../api/companies';
 import Button from '../components/Button';
+import Spinner from '../components/Spinner';
 
 export default function Companies() {
   const qc = useQueryClient();
@@ -53,7 +54,7 @@ export default function Companies() {
       </form>
 
       {isLoading ? (
-        <p className="text-slate-500">Loading…</p>
+        <Spinner center />
       ) : companies.length === 0 ? (
         <div className="rounded-xl border border-dashed border-sky-200 bg-white p-10 text-center text-slate-500">
           <Building2 className="mx-auto mb-2 text-slate-300" size={28} aria-hidden="true" />

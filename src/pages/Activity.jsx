@@ -4,6 +4,7 @@ import { fetchActivity } from '../api/activity';
 import { dayBucket } from '../lib/activityCopy';
 import ActivityRow from '../components/ActivityRow';
 import Button from '../components/Button';
+import Spinner from '../components/Spinner';
 
 export default function Activity() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useInfiniteQuery({
@@ -27,7 +28,7 @@ export default function Activity() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Activity</h1>
 
-      {isLoading && <p className="text-slate-500">Loading…</p>}
+      {isLoading && <Spinner center />}
 
       {isError && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">

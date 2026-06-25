@@ -4,6 +4,7 @@ import { Bell, CalendarClock, Users, CheckCircle2 } from 'lucide-react';
 import { fetchReminders } from '../api/reminders';
 import { updateContact } from '../api/contacts';
 import Button from '../components/Button';
+import Spinner from '../components/Spinner';
 
 const fmt = (v) => new Date(v).toLocaleDateString();
 const sub = (a, b) => [a, b].filter(Boolean).join(' · ');
@@ -83,7 +84,7 @@ export default function Reminders() {
     <div className="mx-auto max-w-3xl">
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Reminders</h1>
 
-      {isLoading && <p className="text-slate-500">Loading…</p>}
+      {isLoading && <Spinner center />}
 
       {isError && !data && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">

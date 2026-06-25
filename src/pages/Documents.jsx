@@ -4,6 +4,7 @@ import { Search, Upload, Trash2, Download, Pencil, FileText, X } from 'lucide-re
 import { listDocuments, createDocument, deleteDocument, downloadDocument } from '../api/documents';
 import DocumentDrawer from '../components/DocumentDrawer';
 import Button from '../components/Button';
+import Spinner from '../components/Spinner';
 
 const TYPES = ['Resume', 'CoverLetter', 'Other'];
 const TYPE_LABEL = { Resume: 'Resume', CoverLetter: 'Cover Letter', Other: 'Other' };
@@ -166,7 +167,7 @@ export default function Documents() {
         <input className={`${inputClass} w-full pl-10`} placeholder="Search documents…" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      {isLoading && <p className="text-slate-500">Loading…</p>}
+      {isLoading && <Spinner center />}
 
       {isError && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">

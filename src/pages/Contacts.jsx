@@ -4,6 +4,7 @@ import { Search, Plus, Trash2, Pencil, Users, Mail, Linkedin, CalendarClock } fr
 import { listContacts, deleteContact } from '../api/contacts';
 import ContactDrawer from '../components/ContactDrawer';
 import Button from '../components/Button';
+import Spinner from '../components/Spinner';
 
 const toDate = (v) => (v ? new Date(v).toISOString().slice(0, 10) : '');
 const isOverdue = (v) => Boolean(v) && new Date(v) < new Date(new Date().toDateString());
@@ -45,7 +46,7 @@ export default function Contacts() {
       </div>
 
       {isLoading ? (
-        <p className="text-slate-500">Loading…</p>
+        <Spinner center />
       ) : contacts.length === 0 ? (
         <div className="rounded-xl border border-dashed border-sky-200 bg-white p-10 text-center text-slate-500">
           <Users className="mx-auto mb-2 text-slate-300" size={28} aria-hidden="true" />

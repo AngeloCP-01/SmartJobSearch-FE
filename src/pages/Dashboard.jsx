@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Briefcase, BarChart3, CalendarClock } from 'lucide-react';
 import { fetchSummary } from '../api/dashboard';
+import Spinner from '../components/Spinner';
 
 const prettify = (s) => s.replace(/_/g, ' ');
 
@@ -23,7 +24,7 @@ export default function Dashboard() {
     <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Dashboard</h1>
       {isLoading || !data ? (
-        <p className="text-slate-500">Loading…</p>
+        <Spinner center />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Card title="Total applications" icon={Briefcase}>

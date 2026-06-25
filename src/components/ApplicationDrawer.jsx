@@ -338,9 +338,9 @@ export default function ApplicationDrawer({ application, open, onClose }) {
           {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
 
           <div className="flex items-center gap-2">
-            <Button type="submit" disabled={save.isPending}>Save</Button>
+            <Button type="submit" loading={save.isPending}>Save</Button>
             {isEdit && (
-              <Button type="button" variant="danger" disabled={del.isPending}
+              <Button type="button" variant="danger" loading={del.isPending}
                 onClick={() => { if (window.confirm('Delete this application?')) del.mutate(); }}>
                 <Trash2 size={16} aria-hidden="true" /> Delete
               </Button>

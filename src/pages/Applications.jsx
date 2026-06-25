@@ -8,6 +8,7 @@ import { Plus, AlertCircle, Maximize2, Search, LayoutGrid, List, ArrowUp, ArrowD
 import { listApplications, updateStatus } from '../api/applications';
 import Button from '../components/Button';
 import ApplicationDrawer from '../components/ApplicationDrawer';
+import Spinner from '../components/Spinner';
 import { STATUSES } from '../lib/applicationStatus';
 import { formatSalaryRange } from '../lib/salary';
 
@@ -331,7 +332,7 @@ export default function Applications() {
       )}
 
       {isLoading ? (
-        <p className="text-slate-500">Loading…</p>
+        <Spinner center />
       ) : (
         <>
           {apps.length === 0 && (
