@@ -29,5 +29,7 @@ List + create (application select, type, interviewer).
 ## FE-5 — Dashboard ☑
 Summary cards: totals, by-status, upcoming interviews.
 
-## FE-6 — Deploy ☐
+## FE-6 — Deploy ◐
 Static build hosted; point `VITE_API_URL` at the deployed API; backend `CORS_ORIGIN` = frontend origin.
+
+**Config landed (2026-06-25):** full-stack free-tier path — FE→Vercel, API→Render, DB→Neon, uploads→Supabase Storage. `vercel.json` (SPA rewrite) in this repo; backend gained an S3 storage driver, cross-site cookies, `render.yaml`, and a full walkthrough in `../SmartJobSearchCRM-BE/DEPLOY.md`. **Remaining:** provision the four free accounts + set env (DATABASE_URL, CORS_ORIGIN↔VITE_API_URL, S3_*), then deploy & smoke-test.
