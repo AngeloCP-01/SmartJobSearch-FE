@@ -238,6 +238,8 @@ function ListView({ apps, sort, onSort, onOpen, onStatusChange }) {
 export default function Applications() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [companyFilter, setCompanyFilter] = useState('');
   const [view, setView] = useState(() => localStorage.getItem('applicationsView') || 'kanban');
   const [sort, setSort] = useState({ key: 'applicationDate', dir: 'desc' });
   const [drawer, setDrawer] = useState({ open: false, application: null });
@@ -250,10 +252,22 @@ export default function Applications() {
 
   useEffect(() => { localStorage.setItem('applicationsView', view); }, [view]);
 
+  // Company filter options derived from the loaded applications (only companies
+  // that actually have applications show up — no empty choices, no extra query).
+  const companyOptions = [...new Map(apps.filter((a) => a.company).map((a) => [a.company.id, a.company.name])).entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((x, y) => x.name.localeCompare(y.name));
+
   const term = search.trim().toLowerCase();
-  const visible = term
-    ? apps.filter((a) => a.position.toLowerCase().includes(term) || (a.company?.name || '').toLowerCase().includes(term))
-    : apps;
+  const hasFilters = Boolean(term || statusFilter || companyFilter);
+  const visible = apps.filter((a) => {
+    if (statusFilter && a.status !== statusFilter) return false;
+    if (companyFilter && a.company?.id !== companyFilter) return false;
+    if (term && !(a.position.toLowerCase().includes(term) || (a.company?.name || '').toLowerCase().includes(term))) return false;
+    return true;
+  });
+  const shownStatuses = statusFilter ? [statusFilter] : STATUSES;
+  const clearFilters = () => { setSearch(''); setStatusFilter(''); setCompanyFilter(''); };
 
   const move = useMutation(moveMutationOptions(qc));
   const onStatusChange = (id, status) => move.mutate({ id, status });
@@ -281,6 +295,29 @@ export default function Applications() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <select
+          aria-label="Filter by status"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">All statuses</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
+        </select>
+        <select
+          aria-label="Filter by company"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          value={companyFilter}
+          onChange={(e) => setCompanyFilter(e.target.value)}
+        >
+          <option value="">All companies</option>
+          {companyOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        {hasFilters && (
+          <button type="button" onClick={clearFilters} className="text-sm font-medium text-sky-700 hover:underline cursor-pointer">
+            Clear
+          </button>
+        )}
         <ViewToggle view={view} onChange={setView} />
         <Button onClick={() => openDrawer(null)}>
           <Plus size={16} aria-hidden="true" /> New application
@@ -303,14 +340,14 @@ export default function Applications() {
             </p>
           )}
           {apps.length > 0 && visible.length === 0 && (
-            <p className="mb-3 text-sm text-slate-500">No applications match your search.</p>
+            <p className="mb-3 text-sm text-slate-500">No applications match your filters.</p>
           )}
           {view === 'list' ? (
             <ListView apps={visible} sort={sort} onSort={onSort} onOpen={openDrawer} onStatusChange={onStatusChange} />
           ) : (
             <DndContext sensors={sensors} onDragEnd={onDragEnd}>
               <div className="flex gap-3 overflow-x-auto pb-4">
-                {STATUSES.map((s) => (
+                {shownStatuses.map((s) => (
                   <Column key={s} status={s} apps={visible.filter((a) => a.status === s)} onOpen={openDrawer} />
                 ))}
               </div>

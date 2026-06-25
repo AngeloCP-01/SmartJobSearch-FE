@@ -49,7 +49,7 @@ test('cards show the company name and salary chip', async () => {
   ])));
   renderPage();
   await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
-  expect(screen.getByText('Acme')).toBeInTheDocument();
+  expect(screen.getByText('Acme', { selector: 'p' })).toBeInTheDocument(); // card, not the filter <option>
   expect(screen.getByText(/90k/)).toBeInTheDocument();
 });
 
@@ -124,7 +124,7 @@ test('List view shows applications in a table with a sortable header and status 
   await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
   await userEvent.click(screen.getByRole('button', { name: /^list$/i }));
   expect(screen.getByRole('button', { name: /sort by position/i })).toBeInTheDocument();
-  expect(screen.getByText('Acme')).toBeInTheDocument();
+  expect(screen.getByText('Acme', { selector: 'td' })).toBeInTheDocument(); // cell, not the filter <option>
   expect(screen.getByText(/90k/)).toBeInTheDocument();
   expect(screen.getByLabelText('Status for Backend Eng')).toHaveValue('Applied');
 });
@@ -154,6 +154,45 @@ test('remembers the selected view across remounts (localStorage)', async () => {
   unmount();
   renderPage();
   await waitFor(() => expect(screen.getByLabelText('Status for Backend Eng')).toBeInTheDocument());
+});
+
+test('filters applications by status', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([
+    { id: 'a1', position: 'Backend Eng', status: 'Applied', company: null },
+    { id: 'a2', position: 'Frontend Eng', status: 'Offer', company: null },
+  ])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  expect(screen.getByText('Frontend Eng')).toBeInTheDocument();
+  await userEvent.selectOptions(screen.getByLabelText(/filter by status/i), 'Offer');
+  await waitFor(() => expect(screen.queryByText('Backend Eng')).not.toBeInTheDocument());
+  expect(screen.getByText('Frontend Eng')).toBeInTheDocument();
+});
+
+test('filters applications by company', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([
+    { id: 'a1', position: 'Backend Eng', status: 'Applied', company: { id: 'c1', name: 'Acme' } },
+    { id: 'a2', position: 'Frontend Eng', status: 'Applied', company: { id: 'c2', name: 'Globex' } },
+  ])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  await userEvent.selectOptions(screen.getByLabelText(/filter by company/i), 'c1');
+  await waitFor(() => expect(screen.queryByText('Frontend Eng')).not.toBeInTheDocument());
+  expect(screen.getByText('Backend Eng')).toBeInTheDocument();
+});
+
+test('Clear resets the active filters', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([
+    { id: 'a1', position: 'Backend Eng', status: 'Applied', company: null },
+    { id: 'a2', position: 'Frontend Eng', status: 'Offer', company: null },
+  ])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  await userEvent.selectOptions(screen.getByLabelText(/filter by status/i), 'Offer');
+  await waitFor(() => expect(screen.queryByText('Backend Eng')).not.toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /^clear$/i }));
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  expect(screen.getByText('Frontend Eng')).toBeInTheDocument();
 });
 
 test('has no redundant quick-add "Add application" button', async () => {
