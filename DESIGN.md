@@ -44,6 +44,8 @@ Derived from the ui-ux-pro-max recommendation, adapted from a landing-page bias 
 
 A `Board | List` **segmented toggle** (header, right of search) switches views; the choice persists in `localStorage`. Pattern for the toggle: `inline-flex` pill group, active segment `bg-sky-700 text-white`, inactive `text-slate-600 hover:bg-slate-50`, each with an icon + label and `aria-pressed`.
 
+**Filters:** Status + Company `<select>` dropdowns sit between search and the toggle and apply to both views. Options are derived from loaded data (companies that have applications), so there are no dead choices. A subtle text **Clear** link appears only while a filter/search is active and resets everything; empty results read "No applications match your filters."
+
 **Board (Kanban):**
 - Horizontal scroll row of columns, one per status (Draft → Withdrawn). Each column: `bg-slate-50 rounded-xl`, a header pill colored per status, and a count.
 - Cards: white `rounded-lg border shadow-sm`, `cursor-grab`, subtle lift on drag (`shadow-md`), drop target column tints `bg-sky-50`.
