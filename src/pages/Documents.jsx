@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Upload, Trash2, Download, Pencil, FileText } from 'lucide-react';
+import { Search, Upload, Trash2, Download, Pencil, FileText, X } from 'lucide-react';
 import { listDocuments, createDocument, deleteDocument, downloadDocument } from '../api/documents';
 import DocumentDrawer from '../components/DocumentDrawer';
 import Button from '../components/Button';
@@ -35,6 +35,21 @@ export default function Documents() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
+  function pickFile(f) {
+    if (!f) return;
+    setFile(f);
+    setError(null);
+    // Prefill the name from the filename (minus extension) when it's still empty,
+    // so a file alone is usually enough to upload.
+    if (!name.trim()) setName(f.name.replace(/\.[^./\\]+$/, ''));
+  }
+  function clearFile() {
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
 
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', search],
@@ -44,7 +59,7 @@ export default function Documents() {
   const upload = useMutation({
     mutationFn: (formData) => createDocument(formData),
     onSuccess: () => {
-      setFile(null); setName(''); setNotes(''); setType('Resume'); setError(null);
+      clearFile(); setName(''); setNotes(''); setType('Resume'); setError(null);
       qc.invalidateQueries({ queryKey: ['documents'] });
     },
     onError: (e) => setError(e.response?.data?.error?.message || 'Upload failed'),
@@ -77,27 +92,73 @@ export default function Documents() {
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Documents</h1>
 
       <form className="mb-6 rounded-xl border border-sky-100 bg-white p-4 shadow-sm" onSubmit={onSubmit}>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col text-sm font-medium text-slate-600">
-            File
-            <input
-              aria-label="File"
-              type="file"
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              className="mt-1 text-sm"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-          </label>
+        <span className="mb-1.5 block text-sm font-medium text-slate-600">File</span>
+        <input
+          ref={fileInputRef}
+          aria-label="File"
+          type="file"
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          className="sr-only"
+          onChange={(e) => pickFile(e.target.files?.[0])}
+        />
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Choose file"
+          onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); pickFile(e.dataTransfer.files?.[0]); }}
+          className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed px-4 py-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500
+            ${dragOver ? 'border-sky-400 bg-sky-50' : file ? 'border-sky-200 bg-sky-50/50' : 'border-slate-300 hover:border-sky-300 hover:bg-slate-50'}`}
+        >
+          {file ? (
+            <>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-100 text-sky-700">
+                <FileText size={18} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium text-slate-800">{file.name}</span>
+                <span className="block text-xs text-slate-500">{fmtSize(file.size)} · click to replace</span>
+              </span>
+              <button
+                type="button"
+                aria-label="Remove file"
+                onClick={(e) => { e.stopPropagation(); clearFile(); }}
+                className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-red-600 cursor-pointer"
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500">
+                <Upload size={18} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium text-slate-700">Click to choose a file or drag it here</span>
+                <span className="block text-xs text-slate-500">PDF, DOC, or DOCX · up to 5 MB</span>
+              </span>
+            </>
+          )}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <input aria-label="Document name" className={`${inputClass} flex-1 min-w-40`} placeholder="Name (e.g. Backend Resume v2)"
             value={name} onChange={(e) => setName(e.target.value)} />
           <select aria-label="Document type" className={inputClass} value={type} onChange={(e) => setType(e.target.value)}>
             {TYPES.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
           </select>
-          <Button type="submit" disabled={upload.isPending}><Upload size={16} aria-hidden="true" /> Upload</Button>
         </div>
         <input aria-label="Document notes" className={`${inputClass} mt-3 w-full`} placeholder="Notes (optional)"
           value={notes} onChange={(e) => setNotes(e.target.value)} />
-        {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
+        <div className="mt-3 flex items-center gap-3">
+          <Button type="submit" disabled={upload.isPending}>
+            <Upload size={16} aria-hidden="true" /> {upload.isPending ? 'Uploading…' : 'Upload'}
+          </Button>
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+        </div>
       </form>
 
       <div className="relative mb-4">

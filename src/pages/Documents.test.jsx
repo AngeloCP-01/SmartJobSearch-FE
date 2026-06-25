@@ -34,6 +34,21 @@ test('lists documents with their type', async () => {
   expect(screen.getByText('Resume', { selector: 'span' })).toBeInTheDocument();
 });
 
+test('shows the chosen file name and prefills the document name', async () => {
+  server.use(http.get(`${API}/documents`, () => HttpResponse.json([])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText(/no documents yet/i)).toBeInTheDocument());
+  const file = new File(['pdfbytes'], 'Backend_Resume.pdf', { type: 'application/pdf' });
+  await userEvent.upload(screen.getByLabelText('File'), file);
+  // The selected file is clearly shown (the original UX gap), and the name field
+  // is prefilled from the filename without its extension.
+  expect(screen.getByText('Backend_Resume.pdf')).toBeInTheDocument();
+  expect(screen.getByLabelText('Document name')).toHaveValue('Backend_Resume');
+  // Removing the file clears the chosen-file display.
+  await userEvent.click(screen.getByRole('button', { name: /remove file/i }));
+  expect(screen.queryByText('Backend_Resume.pdf')).not.toBeInTheDocument();
+});
+
 test('uploads a document as multipart/form-data', async () => {
   let posted = null;
   server.use(
