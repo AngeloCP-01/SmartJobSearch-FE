@@ -20,8 +20,9 @@ Login/Register, in-memory access token, 401→`/auth/refresh` interceptor (singl
 ## FE-2 — Companies ☑
 List + search + create + delete.
 
-## FE-3 — Applications Kanban ☑
+## FE-3 — Applications Kanban + List ☑
 @dnd-kit board, one column per status, optimistic `PATCH /:id/status` on drop.
+**List view (2026-06-25):** `Board | List` toggle (persisted to `localStorage`); sortable table with an inline status quick-change `<select>` (same optimistic mutation as drag), click-row-to-open, and company-aware search.
 
 ## FE-4 — Interviews ☑
 List + create (application select, type, interviewer).

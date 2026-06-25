@@ -40,11 +40,16 @@ Derived from the ui-ux-pro-max recommendation, adapted from a landing-page bias 
 - **Empty states:** friendly message + guidance, not a blank panel.
 - **Long-form text (e.g. job description):** default to a **read view** — a scrollable `whitespace-pre-wrap` block on `bg-slate-50` with `leading-relaxed` that preserves pasted line breaks/bullets verbatim — with an inline **Edit** toggle to a tall textarea and a **Expand** (`Maximize2`) action opening a centered reading modal (`max-w-2xl`, `max-h-[85vh]`). The modal closes on its own Escape without dismissing the parent drawer (capture-phase key handler + `stopPropagation`).
 
-## Kanban (Applications)
+## Applications — Board & List views
 
+A `Board | List` **segmented toggle** (header, right of search) switches views; the choice persists in `localStorage`. Pattern for the toggle: `inline-flex` pill group, active segment `bg-sky-700 text-white`, inactive `text-slate-600 hover:bg-slate-50`, each with an icon + label and `aria-pressed`.
+
+**Board (Kanban):**
 - Horizontal scroll row of columns, one per status (Draft → Withdrawn). Each column: `bg-slate-50 rounded-xl`, a header pill colored per status, and a count.
 - Cards: white `rounded-lg border shadow-sm`, `cursor-grab`, subtle lift on drag (`shadow-md`), drop target column tints `bg-sky-50`.
 - Status hues: Draft `slate`, Applied `sky`, HR_Screening `indigo`, Technical_Interview `violet`, Final_Interview `amber`, Offer `green`, Accepted `emerald`, Rejected `red`, Withdrawn `slate`.
+
+**List (table):** `rounded-xl border` card wrapping an `overflow-x-auto` table. Header cells are sort buttons (`aria-label="Sort by …"`) with an up/down/neutral arrow for the active/inactive sort. Rows are click-to-open with a keyboard `Maximize2` open button; status is an inline pill-styled `<select>` reusing the status hues so it doubles as a quick-change control. Reuse the same colored status tokens as the board so the two views read identically.
 
 ## Accessibility / quality bar
 
