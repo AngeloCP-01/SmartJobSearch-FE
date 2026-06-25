@@ -4,12 +4,16 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server, API } from '../test/server';
 import api from '../api/client';
-import Applications, { moveMutationOptions } from './Applications';
+import Applications, { moveMutationOptions, sortApps } from './Applications';
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={qc}><Applications /></QueryClientProvider>);
 }
+
+// The view choice is persisted to localStorage; reset it so each test starts on
+// the default Kanban board.
+beforeEach(() => localStorage.clear());
 
 test('renders a column per status and places cards by status', async () => {
   server.use(http.get(`${API}/applications`, () => HttpResponse.json([
@@ -98,6 +102,58 @@ test('search filters the board by position', async () => {
   await userEvent.type(screen.getByPlaceholderText(/search applications/i), 'front');
   await waitFor(() => expect(screen.queryByText('Backend Eng')).not.toBeInTheDocument());
   expect(screen.getByText('Frontend Eng')).toBeInTheDocument();
+});
+
+test('sortApps orders by the given key and direction without mutating input', () => {
+  const apps = [
+    { position: 'B', salaryMax: 100 },
+    { position: 'A', salaryMax: 300 },
+    { position: 'C', salaryMax: 200 },
+  ];
+  expect(sortApps(apps, { key: 'position', dir: 'asc' }).map((a) => a.position)).toEqual(['A', 'B', 'C']);
+  expect(sortApps(apps, { key: 'position', dir: 'desc' }).map((a) => a.position)).toEqual(['C', 'B', 'A']);
+  expect(sortApps(apps, { key: 'salary', dir: 'asc' }).map((a) => a.salaryMax)).toEqual([100, 200, 300]);
+  expect(apps.map((a) => a.position)).toEqual(['B', 'A', 'C']); // original untouched
+});
+
+test('List view shows applications in a table with a sortable header and status dropdown', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([
+    { id: 'a1', position: 'Backend Eng', status: 'Applied', company: { id: 'c1', name: 'Acme' }, salaryMin: 90000, salaryMax: 110000, applicationDate: '2026-06-23T00:00:00.000Z' },
+  ])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /^list$/i }));
+  expect(screen.getByRole('button', { name: /sort by position/i })).toBeInTheDocument();
+  expect(screen.getByText('Acme')).toBeInTheDocument();
+  expect(screen.getByText(/90k/)).toBeInTheDocument();
+  expect(screen.getByLabelText('Status for Backend Eng')).toHaveValue('Applied');
+});
+
+test('changing status from the List view PATCHes /:id/status', async () => {
+  let patched = null;
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Eng', status: 'Applied' }])),
+    http.patch(`${API}/applications/a1/status`, async ({ request }) => {
+      patched = await request.json();
+      return HttpResponse.json({ id: 'a1', position: 'Backend Eng', status: patched.status });
+    }),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /^list$/i }));
+  await userEvent.selectOptions(screen.getByLabelText('Status for Backend Eng'), 'Offer');
+  await waitFor(() => expect(patched).toEqual({ status: 'Offer' }));
+});
+
+test('remembers the selected view across remounts (localStorage)', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Eng', status: 'Applied' }])));
+  const { unmount } = renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /^list$/i }));
+  expect(localStorage.getItem('applicationsView')).toBe('list');
+  unmount();
+  renderPage();
+  await waitFor(() => expect(screen.getByLabelText('Status for Backend Eng')).toBeInTheDocument());
 });
 
 test('has no redundant quick-add "Add application" button', async () => {

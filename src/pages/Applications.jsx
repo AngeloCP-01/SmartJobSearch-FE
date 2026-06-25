@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   DndContext, useDraggable, useDroppable,
   PointerSensor, KeyboardSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, AlertCircle, Maximize2, Search } from 'lucide-react';
+import { Plus, AlertCircle, Maximize2, Search, LayoutGrid, List, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { listApplications, updateStatus } from '../api/applications';
 import Button from '../components/Button';
 import ApplicationDrawer from '../components/ApplicationDrawer';
@@ -116,9 +116,130 @@ function Column({ status, apps, onOpen }) {
   );
 }
 
+function ViewToggle({ view, onChange }) {
+  const opts = [
+    { id: 'kanban', label: 'Board', Icon: LayoutGrid },
+    { id: 'list', label: 'List', Icon: List },
+  ];
+  return (
+    <div role="group" aria-label="View" className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5">
+      {opts.map(({ id, label: lbl, Icon }) => {
+        const active = view === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(id)}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors
+              ${active ? 'bg-sky-700 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            <Icon size={15} aria-hidden="true" /> {lbl}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Pure comparators per sortable column. Salary sorts by the upper bound (falling
+// back to the lower); missing values sort last in ascending order.
+const SORTS = {
+  position: (a, b) => a.position.localeCompare(b.position),
+  company: (a, b) => (a.company?.name || '').localeCompare(b.company?.name || ''),
+  status: (a, b) => STATUSES.indexOf(a.status) - STATUSES.indexOf(b.status),
+  salary: (a, b) => (a.salaryMax ?? a.salaryMin ?? -1) - (b.salaryMax ?? b.salaryMin ?? -1),
+  applicationDate: (a, b) => new Date(a.applicationDate || 0) - new Date(b.applicationDate || 0),
+};
+
+const COLUMNS = [
+  { key: 'position', label: 'Position' },
+  { key: 'company', label: 'Company' },
+  { key: 'status', label: 'Status' },
+  { key: 'salary', label: 'Salary' },
+  { key: 'applicationDate', label: 'Applied' },
+];
+
+const dash = <span className="text-slate-300">—</span>;
+
+export function sortApps(apps, { key, dir }) {
+  const cmp = SORTS[key];
+  if (!cmp) return apps;
+  const out = [...apps].sort(cmp);
+  return dir === 'desc' ? out.reverse() : out;
+}
+
+function ListView({ apps, sort, onSort, onOpen, onStatusChange }) {
+  const rows = sortApps(apps, sort);
+  return (
+    <div className="overflow-x-auto rounded-xl border border-sky-100 bg-white shadow-sm">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
+            {COLUMNS.map((c) => {
+              const active = sort.key === c.key;
+              const SortIcon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown;
+              return (
+                <th key={c.key} scope="col" className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => onSort(c.key)}
+                    aria-label={`Sort by ${c.label}`}
+                    className="inline-flex items-center gap-1 cursor-pointer hover:text-slate-700"
+                  >
+                    {c.label}
+                    <SortIcon size={12} aria-hidden="true" className={active ? '' : 'text-slate-300'} />
+                  </button>
+                </th>
+              );
+            })}
+            <th scope="col" className="px-4 py-3"><span className="sr-only">Open</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((a) => (
+            <tr
+              key={a.id}
+              onClick={() => onOpen(a)}
+              className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-sky-50/40"
+            >
+              <td className="px-4 py-3 font-medium text-slate-900">{a.position}</td>
+              <td className="px-4 py-3 text-slate-600">{a.company?.name || dash}</td>
+              <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                <select
+                  aria-label={`Status for ${a.position}`}
+                  value={a.status}
+                  onChange={(e) => onStatusChange(a.id, e.target.value)}
+                  className={`cursor-pointer rounded-full border-0 px-2.5 py-1 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${STATUS_STYLES[a.status] || 'bg-slate-100 text-slate-600'}`}
+                >
+                  {STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
+                </select>
+              </td>
+              <td className="px-4 py-3 text-slate-700">{formatSalaryRange(a.salaryMin, a.salaryMax) || dash}</td>
+              <td className="px-4 py-3 text-slate-500">{fmtDate(a.applicationDate) || dash}</td>
+              <td className="px-4 py-3 text-right">
+                <button
+                  type="button"
+                  aria-label={`Open ${a.position}`}
+                  onClick={(e) => { e.stopPropagation(); onOpen(a); }}
+                  className="text-slate-400 hover:text-sky-700 cursor-pointer"
+                >
+                  <Maximize2 size={15} aria-hidden="true" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Applications() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [view, setView] = useState(() => localStorage.getItem('applicationsView') || 'kanban');
+  const [sort, setSort] = useState({ key: 'applicationDate', dir: 'desc' });
   const [drawer, setDrawer] = useState({ open: false, application: null });
   const openDrawer = (application) => setDrawer({ open: true, application });
   const sensors = useSensors(
@@ -127,10 +248,16 @@ export default function Applications() {
   );
   const { data: apps = [], isLoading } = useQuery({ queryKey: ['applications'], queryFn: listApplications });
 
+  useEffect(() => { localStorage.setItem('applicationsView', view); }, [view]);
+
   const term = search.trim().toLowerCase();
-  const visible = term ? apps.filter((a) => a.position.toLowerCase().includes(term)) : apps;
+  const visible = term
+    ? apps.filter((a) => a.position.toLowerCase().includes(term) || (a.company?.name || '').toLowerCase().includes(term))
+    : apps;
 
   const move = useMutation(moveMutationOptions(qc));
+  const onStatusChange = (id, status) => move.mutate({ id, status });
+  const onSort = (key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
 
   function onDragEnd(event) {
     applyDrop(
@@ -154,6 +281,7 @@ export default function Applications() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <ViewToggle view={view} onChange={setView} />
         <Button onClick={() => openDrawer(null)}>
           <Plus size={16} aria-hidden="true" /> New application
         </Button>
@@ -177,13 +305,17 @@ export default function Applications() {
           {apps.length > 0 && visible.length === 0 && (
             <p className="mb-3 text-sm text-slate-500">No applications match your search.</p>
           )}
-          <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-            <div className="flex gap-3 overflow-x-auto pb-4">
-              {STATUSES.map((s) => (
-                <Column key={s} status={s} apps={visible.filter((a) => a.status === s)} onOpen={openDrawer} />
-              ))}
-            </div>
-          </DndContext>
+          {view === 'list' ? (
+            <ListView apps={visible} sort={sort} onSort={onSort} onOpen={openDrawer} onStatusChange={onStatusChange} />
+          ) : (
+            <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+              <div className="flex gap-3 overflow-x-auto pb-4">
+                {STATUSES.map((s) => (
+                  <Column key={s} status={s} apps={visible.filter((a) => a.status === s)} onOpen={openDrawer} />
+                ))}
+              </div>
+            </DndContext>
+          )}
         </>
       )}
 
