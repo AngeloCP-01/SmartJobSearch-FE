@@ -12,6 +12,8 @@ Master coordination: `../TASKS.md`
 > **Update (2026-06-25):** details-drawer UX pass — **job-description read view** (faithful `whitespace-pre-wrap` rendering of pasted postings, Edit toggle, Expand-to-modal) and the drawer widened `max-w-md → max-w-xl`. Merged to `main` (`f56f3c0`). See `TRACKER.md` Notes for detail.
 >
 > **Update (2026-06-26):** post-deploy UX polish — Applications **List view + Status/Company filters**, Documents **upload dropzone**, and **app-wide loading feedback** (global top progress bar + `<Spinner>` + Button `loading`). All merged to `main`; **131 tests**. See `TRACKER.md` Notes.
+>
+> **Portfolio-readiness (2026-06-26):** one-click **demo login** (seeded account), public **landing page** (`/welcome`), polished **README + live screenshots + CI** (green badge), and **perf/a11y** (route code-splitting 761→284 KB, skip link, OG meta). **134 tests**. See `TRACKER.md` Notes.
 
 ## FE-0 — Scaffold ☑
 Vite + React, Tailwind v4, TanStack Query, axios client (`withCredentials`), Vitest + MSW.
