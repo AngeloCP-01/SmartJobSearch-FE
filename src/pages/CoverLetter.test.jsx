@@ -3,7 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server, API } from '../test/server';
-import CoverLetter from './CoverLetter';
+import CoverLetter, { coverLetterFilename } from './CoverLetter';
+
+test('coverLetterFilename derives the name from the application position', () => {
+  expect(coverLetterFilename('Senior Full Stack Engineer')).toBe('Senior Full Stack Engineer-cover-letter.txt');
+  expect(coverLetterFilename('Frontend Eng (React)')).toBe('Frontend Eng (React)-cover-letter.txt');
+  expect(coverLetterFilename('Dev/Ops: Lead')).toBe('DevOps Lead-cover-letter.txt'); // strips \ / : * ? " < > |
+  expect(coverLetterFilename('')).toBe('cover-letter.txt');
+});
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

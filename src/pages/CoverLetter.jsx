@@ -16,6 +16,12 @@ function downloadTxt(text, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+// "<application position>-cover-letter.txt", stripped of filename-unsafe chars.
+export function coverLetterFilename(position) {
+  const base = (position || '').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim();
+  return base ? `${base}-cover-letter.txt` : 'cover-letter.txt';
+}
+
 export default function CoverLetter() {
   const [applicationId, setApplicationId] = useState('');
   const [documentId, setDocumentId] = useState('');
@@ -92,7 +98,7 @@ export default function CoverLetter() {
               <Button type="button" variant="subtle" onClick={onCopy}>
                 {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />} {copied ? 'Copied' : 'Copy'}
               </Button>
-              <Button type="button" variant="subtle" onClick={() => downloadTxt(letter, 'cover-letter.txt')}>
+              <Button type="button" variant="subtle" onClick={() => downloadTxt(letter, coverLetterFilename(meta?.position))}>
                 <Download size={16} aria-hidden="true" /> .txt
               </Button>
             </div>
