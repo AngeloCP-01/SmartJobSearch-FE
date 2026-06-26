@@ -2,7 +2,9 @@ import axios from 'axios';
 import { getAccessToken, setAccessToken, emitUnauthorized } from './authToken';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
+  // Canonical API base is the versioned /api/v1; the backend also serves the
+  // unversioned /api as a backward-compatible alias.
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1',
   withCredentials: true,
 });
 

@@ -9,5 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/test/setup.js',
     css: true,
+    // Unit/component tests live under src/; e2e/ is Playwright-only.
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
   },
 });

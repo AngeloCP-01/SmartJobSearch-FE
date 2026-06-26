@@ -1,7 +1,9 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 
-export const API = 'http://localhost:4000/api';
+// Mirror the api client's base exactly (same env var + default) so MSW handlers
+// match whatever base the client uses — /api locally (.env) or /api/v1 in CI.
+export const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
 
 // Minimal default handlers; individual tests override with server.use(...).
 export const handlers = [
