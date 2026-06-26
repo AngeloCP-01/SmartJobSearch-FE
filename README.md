@@ -1,19 +1,67 @@
-# Smart Job Search CRM — Frontend (v1)
+# Smart Job Search CRM
 
-React single-page app for the Smart Job Search CRM: auth, companies, an applications **Kanban board** with drag-to-update status, interviews, and a dashboard.
+A full-stack CRM for managing a job search end to end — track applications across a Kanban pipeline, schedule interviews, keep notes on companies and contacts, store résumés, and get an **AI-assisted résumé/ATS analysis** against each job description.
 
-## Stack
+[![Frontend CI](https://github.com/AngeloCP-01/SmartJobSearch-FE/actions/workflows/ci.yml/badge.svg)](https://github.com/AngeloCP-01/SmartJobSearch-FE/actions/workflows/ci.yml)
+&nbsp;**[▶ Live demo](https://smart-job-search-fe.vercel.app)** — click **“Try the demo”** (no sign-up).
 
-React + Vite · React Router · TanStack Query · Tailwind CSS v4 · @dnd-kit · lucide-react. Tests: Vitest + React Testing Library + MSW.
+> Two repos: **frontend** (this) and the **[API backend](https://github.com/AngeloCP-01/SmartJobSearch-BE)**.
 
-Design system (Plus Jakarta Sans, sky-blue + success-green SaaS palette, sidebar dashboard): see [`DESIGN.md`](./DESIGN.md).
+![Applications board](docs/screenshots/03-applications-board.png)
 
-## Prerequisites
+---
 
-- Node.js 20+
-- The **backend** running at `http://localhost:4000` (see `SmartJobSearchCRM-BE/README.md` — `docker compose up -d` + `npm run dev`). The backend's CORS allows `http://localhost:5173`.
+## Highlights
 
-## Setup
+- **Kanban + List views** of applications with drag-to-update status (optimistic, with rollback), inline status quick-change, sortable columns, and status/company filters.
+- **AI résumé/ATS analysis** — scores a résumé for ATS-friendliness and match against a job description, with keyword gaps and prioritized, actionable suggestions. Runs on an LLM (OpenRouter) with a graceful deterministic fallback.
+- **The full job-search workflow** — companies, contacts, interviews (with results), a reminders feed (upcoming/overdue), document storage, and a per-application activity timeline.
+- **Production-grade plumbing** — in-memory access token + httpOnly refresh cookie with single-flight refresh, app-wide loading feedback, accessible components, and **280+ automated tests** across both repos.
+
+## Screenshots
+
+| Dashboard | Applications (List) |
+|---|---|
+| ![Dashboard](docs/screenshots/02-dashboard.png) | ![List view](docs/screenshots/04-applications-list.png) |
+
+| AI Résumé Analysis | Application detail |
+|---|---|
+| ![Analysis](docs/screenshots/05-analysis.png) | ![Drawer](docs/screenshots/08-application-drawer.png) |
+
+| Reminders | Documents |
+|---|---|
+| ![Reminders](docs/screenshots/06-reminders.png) | ![Documents](docs/screenshots/07-documents.png) |
+
+## Tech stack
+
+| | |
+|---|---|
+| **Frontend** | React + Vite · React Router · TanStack Query · Tailwind CSS v4 · @dnd-kit · Recharts · lucide-react |
+| **Backend** | Node.js · Express · PostgreSQL (Prisma) · JWT (access + refresh cookie) · Zod · OpenRouter (AI) |
+| **Tests** | Vitest + RTL + MSW (frontend) · Jest + Supertest (backend) — 280+ tests |
+| **Infra** | Vercel (web) · Render (API) · Neon (Postgres) · Supabase Storage (uploads) · GitHub Actions (CI + keep-alive) |
+
+## Architecture
+
+```
+Browser ─▶ Vercel (React SPA) ──VITE_API_URL──▶ Render (Express API) ──▶ Neon (Postgres)
+                                                      └── S3 driver ──▶ Supabase Storage (résumés)
+   in-memory access token + SameSite=None httpOnly refresh cookie
+```
+
+The API is a **modular monolith** (one module per domain: auth, companies, applications, interviews, contacts, documents, activity, analysis…), each with its own routes/controller/service/schema and integration tests.
+
+## Engineering highlights
+
+- **Optimistic Kanban moves** — dragging a card updates the cache immediately and rolls back on error; the mutation logic is extracted as a pure function and unit-tested independently of pointer events.
+- **Resilient auth** — concurrent 401s share a single `/auth/refresh` call (single-flight) to avoid racing refresh-token rotation; a server 5xx never force-logs-you-out.
+- **AI with a safety net** — résumé analysis tries a chain of LLM models, fast-fails on rate limits to the next model, and falls back to a deterministic keyword matcher so the feature never hard-fails.
+- **Swappable storage** — a small `save/createReadStream/remove` interface backs both local disk (dev) and S3-compatible object storage (prod) so uploads survive the host’s ephemeral disk; selected by one env var, no caller changes.
+- **Pragmatic deploy** — runs entirely on free tiers; a keep-alive workflow pings the API so a reviewer never hits a cold start.
+
+## Run it locally
+
+Requires Node 20+ and the [backend](https://github.com/AngeloCP-01/SmartJobSearch-BE) running at `http://localhost:4000`.
 
 ```bash
 npm install
@@ -24,32 +72,12 @@ npm run dev               # http://localhost:5173
 ## Tests
 
 ```bash
-npm test
+npm test                  # Vitest — backend mocked at the network layer with MSW
+npm run build             # production build
 ```
 
-The Vitest suite mocks the backend at the network layer with **MSW**, so it runs without a live API. Coverage focuses on the auth flow, the 401→refresh interceptor, and the Kanban drop logic.
+## Project docs
 
-## Build
-
-```bash
-npm run build && npm run preview
-```
-
-## Structure
-
-```
-src/
-  api/        client (axios + 401 refresh interceptor), authToken, per-resource calls
-  auth/       AuthContext (session bootstrap), ProtectedRoute
-  components/ Layout (sidebar/topbar), Field, Button
-  pages/      Login, Register, Dashboard, Companies, Applications (Kanban), Interviews
-  test/       MSW server, vitest setup, render helpers
-```
-
-## Auth model
-
-The access token lives in memory and is sent as `Authorization: Bearer`. The refresh token is an httpOnly cookie (`withCredentials`); on a 401 the client calls `/auth/refresh` once and retries. On reload the session is restored via the cookie. Login/register/refresh 401s are treated as credential errors (no refresh retry).
-
-## Status
-
-v1 frontend (FE-0…FE-5) complete. Deployment (FE-6) is handled separately. See `docs/superpowers/plans/` for the implementation plan.
+- [`DESIGN.md`](./DESIGN.md) — design system (typography, palette, component conventions)
+- [`TRACKER.md`](./TRACKER.md) / [`TASKS.md`](./TASKS.md) — milestone + change log
+- Deployment walkthrough lives in the [backend repo’s `DEPLOY.md`](https://github.com/AngeloCP-01/SmartJobSearch-BE/blob/main/DEPLOY.md)
