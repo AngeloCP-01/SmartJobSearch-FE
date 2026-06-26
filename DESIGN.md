@@ -54,6 +54,10 @@ A `Board | List` **segmented toggle** (header, right of search) switches views; 
 
 **List (table):** `rounded-xl border` card wrapping an `overflow-x-auto` table. Header cells are sort buttons (`aria-label="Sort by …"`) with an up/down/neutral arrow for the active/inactive sort. Rows are click-to-open with a keyboard `Maximize2` open button; status is an inline pill-styled `<select>` reusing the status hues so it doubles as a quick-change control. Reuse the same colored status tokens as the board so the two views read identically.
 
+## Dashboard (home)
+
+The landing page after login: a row of **stat tiles** (icon chip + big `tabular-nums` value + label; each a `<Link>` to the relevant page) over a content grid — a **Pipeline** panel (one horizontal bar per status, widths scaled to the max count, colored with the board status hues) beside an **Upcoming interviews** panel, then a full-width **Recent activity** feed (reuses `ActivityRow`). A header **"New application"** button opens the shared `ApplicationDrawer` inline. Panels use a shared `Panel` (title + icon + optional "View all →" link). It's an at-a-glance/actionable home — trends and charts live on **Analytics**, not here.
+
 ## Accessibility / quality bar
 
 - Contrast ≥4.5:1 for text; color never the sole signal (icon/label too).
