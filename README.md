@@ -15,6 +15,7 @@ A full-stack CRM for managing a job search end to end — track applications acr
 
 - **Kanban + List views** of applications with drag-to-update status (optimistic, with rollback), inline status quick-change, sortable columns, and status/company filters.
 - **AI résumé/ATS analysis** — scores a résumé for ATS-friendliness and match against a job description, with keyword gaps and prioritized, actionable suggestions. Runs on an LLM (OpenRouter) with a graceful deterministic fallback.
+- **AI cover-letter generator** — drafts a tailored cover letter from a job description + your résumé, editable inline and exportable. Reuses the same model-fallback resilience as the analysis engine.
 - **The full job-search workflow** — companies, contacts, interviews (with results), a reminders feed (upcoming/overdue), document storage, and a per-application activity timeline.
 - **Production-grade plumbing** — in-memory access token + httpOnly refresh cookie with single-flight refresh, app-wide loading feedback, accessible components, and **280+ automated tests** across both repos.
 
@@ -24,9 +25,13 @@ A full-stack CRM for managing a job search end to end — track applications acr
 |---|---|
 | ![Dashboard](docs/screenshots/02-dashboard.png) | ![List view](docs/screenshots/04-applications-list.png) |
 
-| AI Résumé Analysis | Application detail |
+| AI Résumé Analysis | AI Cover Letter |
 |---|---|
-| ![Analysis](docs/screenshots/05-analysis.png) | ![Drawer](docs/screenshots/08-application-drawer.png) |
+| ![Analysis](docs/screenshots/05-analysis.png) | ![Cover letter](docs/screenshots/10-cover-letter.png) |
+
+| Application detail | Landing page |
+|---|---|
+| ![Drawer](docs/screenshots/08-application-drawer.png) | ![Landing](docs/screenshots/09-landing.png) |
 
 | Reminders | Documents |
 |---|---|
