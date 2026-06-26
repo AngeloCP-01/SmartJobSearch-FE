@@ -330,6 +330,17 @@ test('auto-fills the new-application form from a pasted posting', async () => {
   expect(screen.getByText(/Ship code/)).toBeInTheDocument(); // JD shown in the read view
 });
 
+test('shows the backend error inline when a posting cannot be parsed', async () => {
+  server.use(http.post(`${API}/postings/parse`, () => HttpResponse.json(
+    { error: { message: 'Couldn’t fetch that URL — paste the posting text instead.', code: 'VALIDATION', details: [] } },
+    { status: 400 },
+  )));
+  renderDrawer({ application: null });
+  await userEvent.type(screen.getByLabelText('Job posting'), 'https://ph.indeed.com/?vjk=abc');
+  await userEvent.click(screen.getByRole('button', { name: /auto-fill/i }));
+  expect(await screen.findByText(/paste the posting text instead/i)).toBeInTheDocument();
+});
+
 test('auto-fill prefills a new company when it does not match an existing one', async () => {
   server.use(http.post(`${API}/postings/parse`, () => HttpResponse.json({
     position: 'Dev', companyName: 'Globex', salaryMin: null, salaryMax: null, source: null, jobDescription: '',

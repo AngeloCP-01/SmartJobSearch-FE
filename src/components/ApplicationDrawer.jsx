@@ -154,7 +154,8 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const parse = useMutation({
     mutationFn: (content) => parsePosting(content),
     onSuccess: (d) => { applyParsed(d); setError(null); },
-    onError: (e) => setError(apiErrorMessage(e, 'Could not read that posting')),
+    // The error is shown inline in the Auto-fill panel (via parse.error), right
+    // where the user is looking — not down by the Save button.
   });
 
   const save = useMutation({
@@ -289,6 +290,11 @@ export default function ApplicationDrawer({ application, open, onClose }) {
                   <Sparkles size={15} aria-hidden="true" /> {parse.isPending ? 'Reading…' : 'Auto-fill'}
                 </Button>
               </div>
+              {parse.isError && (
+                <p role="alert" className="mt-2 text-sm text-red-700">
+                  {apiErrorMessage(parse.error, 'Could not read that posting. Paste the posting text instead.')}
+                </p>
+              )}
             </div>
           )}
 
