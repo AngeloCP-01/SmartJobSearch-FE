@@ -5,6 +5,11 @@ import { useAuth } from '../auth/AuthContext';
 import Field from '../components/Field';
 import Button from '../components/Button';
 
+// Public demo account (seeded with realistic data) so reviewers can explore
+// without signing up. See the backend seed script.
+const DEMO_EMAIL = 'demo@smartjobsearch.app';
+const DEMO_PASSWORD = 'demo1234';
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -13,6 +18,7 @@ export default function Login() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [demoBusy, setDemoBusy] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -25,6 +31,19 @@ export default function Login() {
       setError(err.response?.data?.error?.message || 'Login failed');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function tryDemo() {
+    setError(null);
+    setDemoBusy(true);
+    try {
+      await login({ email: DEMO_EMAIL, password: DEMO_PASSWORD, rememberMe: true });
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Demo is waking up — please try again in a moment.');
+    } finally {
+      setDemoBusy(false);
     }
   }
 
@@ -50,8 +69,17 @@ export default function Login() {
             Keep me logged in
           </label>
           {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
-          <Button type="submit" className="w-full" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>
+          <Button type="submit" className="w-full" loading={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>
         </form>
+
+        <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
+          <span className="h-px flex-1 bg-slate-200" /> or <span className="h-px flex-1 bg-slate-200" />
+        </div>
+        <Button type="button" variant="subtle" className="w-full" loading={demoBusy} onClick={tryDemo}>
+          {demoBusy ? 'Loading demo…' : 'Try the demo'}
+        </Button>
+        <p className="mt-2 text-center text-xs text-slate-400">No sign-up — explore a sample account</p>
+
         <p className="mt-5 text-sm text-slate-600">
           No account? <Link className="font-medium text-sky-700 hover:underline" to="/register">Create one</Link>
         </p>

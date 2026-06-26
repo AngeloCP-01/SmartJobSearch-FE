@@ -51,6 +51,21 @@ test('unchecking keep me logged in sends rememberMe false', async () => {
   await waitFor(() => expect(body).toMatchObject({ rememberMe: false }));
 });
 
+test('the "Try the demo" button logs in with the demo account', async () => {
+  let body = null;
+  server.use(
+    http.post(`${API}/auth/login`, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ user: { id: 'demo', email: 'demo@smartjobsearch.app', name: 'Demo' }, accessToken: 't' });
+    }),
+    http.get(`${API}/dashboard/summary`, () => HttpResponse.json({ totalApplications: 0, byStatus: {}, upcomingInterviews: [] })),
+  );
+  renderWithProviders(<App />, { route: '/login' });
+  await userEvent.click(screen.getByRole('button', { name: /try the demo/i }));
+  await waitFor(() => expect(body).toMatchObject({ email: 'demo@smartjobsearch.app', rememberMe: true }));
+  await waitFor(() => expect(screen.getByRole('heading', { name: /Dashboard/i })).toBeInTheDocument());
+});
+
 test('shows the API error message on bad credentials', async () => {
   server.use(http.post(`${API}/auth/login`, () =>
     HttpResponse.json({ error: { message: 'Invalid credentials', code: 'UNAUTHORIZED' } }, { status: 401 })));
