@@ -1,4 +1,4 @@
-# Smart Job Search CRM — Frontend Design System (v1)
+# Job Application Tracker — Frontend Design System (v1)
 
 Derived from the ui-ux-pro-max recommendation, adapted from a landing-page bias to a **data-dense SaaS dashboard**. Light mode for v1 (tokens structured so dark mode can be added later).
 

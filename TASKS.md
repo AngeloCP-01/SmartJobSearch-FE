@@ -16,6 +16,8 @@ Master coordination: `../TASKS.md`
 > **Portfolio-readiness (2026-06-26):** one-click **demo login** (seeded account), public **landing page** (`/welcome`), polished **README + live screenshots + CI** (green badge), and **perf/a11y** (route code-splitting 761→284 KB, skip link, OG meta). **134 tests**. See `TRACKER.md` Notes.
 >
 > **AI cover-letter generator (2026-06-26):** new `/cover-letter` page → tailored letter from a JD + résumé (editable, copy, download as `<position> - <company>-cover-letter.txt`, or **Save to Documents** → a linked `.txt` CoverLetter doc). Reuses the OpenRouter model-fallback engine; needed widening the doc upload to accept `text/plain`. **138 tests**, verified live. See `TRACKER.md` Notes.
+>
+> **Job-posting auto-import (2026-06-26):** new-application drawer **"Auto-fill from a posting"** → AI parses pasted text/URL into position/company/salary/description (`POST /api/postings/parse`). Also fixed the serial-suite test-DB flake (`connection_limit=1`). **140 tests**, verified live.
 
 ## FE-0 — Scaffold ☑
 Vite + React, Tailwind v4, TanStack Query, axios client (`withCredentials`), Vitest + MSW.

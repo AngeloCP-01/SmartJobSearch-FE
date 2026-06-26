@@ -46,7 +46,7 @@ function Brand() {
       <span className="grid h-8 w-8 place-items-center rounded-lg bg-sky-700 text-white">
         <Briefcase size={18} aria-hidden="true" />
       </span>
-      <span className="font-bold text-slate-900">Job Search CRM</span>
+      <span className="font-bold text-slate-900">Job Application Tracker</span>
     </div>
   );
 }
