@@ -1,8 +1,10 @@
+import { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, CalendarClock, LogOut, Briefcase } from 'lucide-react';
 import { useQuery, useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
 import { fetchReminders } from '../api/reminders';
+import Spinner from './Spinner';
 
 // A thin indeterminate bar pinned to the top whenever any query or mutation is
 // in flight — one place that gives feedback for every API call across the app
@@ -72,6 +74,12 @@ export default function Layout() {
   return (
     <div className="min-h-dvh md:flex">
       <TopProgressBar />
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-sky-700 focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Skip to content
+      </a>
       {/* Sidebar (desktop) */}
       <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col gap-1 border-r border-sky-100 bg-white p-3">
         <div className="mb-4"><Brand /></div>
@@ -101,7 +109,11 @@ export default function Layout() {
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Primary"><NavLinks reminderCount={reminderCount} /></nav>
       </header>
 
-      <main className="flex-1 p-5 md:p-8"><Outlet /></main>
+      <main id="main" className="flex-1 p-5 md:p-8">
+        <Suspense fallback={<Spinner center />}>
+          <Outlet />
+        </Suspense>
+      </main>
     </div>
   );
 }
