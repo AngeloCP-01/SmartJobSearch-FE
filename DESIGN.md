@@ -38,6 +38,7 @@ Derived from the ui-ux-pro-max recommendation, adapted from a landing-page bias 
 - **Cards:** `rounded-xl border border-sky-100 bg-white shadow-sm p-4/5`.
 - **Icons:** `lucide-react` (consistent SVG set) — never emoji. ~18–20px, aligned to text.
 - **Empty states:** friendly message + guidance, not a blank panel.
+- **Loading:** a **global top progress bar** (thin `sky-600` indeterminate sweep, fixed at the top via `Layout`) shows whenever any query/mutation is in flight — the app-wide signal, important for remote/cold-start latency. For first-load placeholders (no content yet) use `<Spinner center />`; inline, `<Spinner />`. Buttons take a `loading` prop (leading spinner + disabled + `aria-busy`) for mutation feedback. All spinners honor `prefers-reduced-motion`.
 - **Long-form text (e.g. job description):** default to a **read view** — a scrollable `whitespace-pre-wrap` block on `bg-slate-50` with `leading-relaxed` that preserves pasted line breaks/bullets verbatim — with an inline **Edit** toggle to a tall textarea and a **Expand** (`Maximize2`) action opening a centered reading modal (`max-w-2xl`, `max-h-[85vh]`). The modal closes on its own Escape without dismissing the parent drawer (capture-phase key handler + `stopPropagation`).
 
 ## Applications — Board & List views
