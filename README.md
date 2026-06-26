@@ -13,7 +13,7 @@ A full-stack CRM for managing a job search end to end — track applications acr
 
 ## Highlights
 
-- **Kanban + List views** of applications with drag-to-update status (optimistic, with rollback), inline status quick-change, sortable columns, and status/company filters.
+- **Kanban + List views** of applications with drag-to-update status (optimistic, with rollback), inline status quick-change, sortable columns, status/company filters, and a Remote/Hybrid/On-site **work-mode** chip.
 - **AI résumé/ATS analysis** — scores a résumé for ATS-friendliness and match against a job description, with keyword gaps and prioritized, actionable suggestions. Runs on an LLM (OpenRouter) with a graceful deterministic fallback.
 - **AI cover-letter generator** — drafts a tailored cover letter from a job description + your résumé, editable inline and exportable. Reuses the same model-fallback resilience as the analysis engine.
 - **Job-posting auto-import** — paste a posting (text or a URL) and AI fills the new-application form: position, company, salary, and description.

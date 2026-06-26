@@ -17,7 +17,9 @@ Master coordination: `../TASKS.md`
 >
 > **AI cover-letter generator (2026-06-26):** new `/cover-letter` page → tailored letter from a JD + résumé (editable, copy, download as `<position> - <company>-cover-letter.txt`, or **Save to Documents** → a linked `.txt` CoverLetter doc). Reuses the OpenRouter model-fallback engine; needed widening the doc upload to accept `text/plain`. **138 tests**, verified live. See `TRACKER.md` Notes.
 >
-> **Job-posting auto-import (2026-06-26):** new-application drawer **"Auto-fill from a posting"** → AI parses pasted text/URL into position/company/salary/description (`POST /api/postings/parse`). Also fixed the serial-suite test-DB flake (`connection_limit=1`). **140 tests**, verified live.
+> **Job-posting auto-import (2026-06-26):** new-application drawer **"Auto-fill from a posting"** → AI parses pasted text/URL into position/company/salary/description (`POST /api/postings/parse`); errors shown inline. Also fixed the serial-suite test-DB flake (`connection_limit=1`). **140 tests**, verified live.
+>
+> **Work-mode field (2026-06-26):** applications gain a **Remote / Hybrid / On-site** field (`WorkMode` enum + migration), set in the drawer, extracted by auto-import, and shown as a chip on cards/list. **143 tests**, verified live.
 
 ## FE-0 — Scaffold ☑
 Vite + React, Tailwind v4, TanStack Query, axios client (`withCredentials`), Vitest + MSW.
