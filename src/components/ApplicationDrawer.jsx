@@ -35,10 +35,17 @@ function initialForm(app) {
     salaryMin: app?.salaryMin ?? '',
     salaryMax: app?.salaryMax ?? '',
     source: app?.source || '',
+    workMode: app?.workMode || '',
     jobDescription: app?.jobDescription || '',
     notes: app?.notes || '',
   };
 }
+
+const WORK_MODES = [
+  { value: 'Remote', label: 'Remote' },
+  { value: 'Hybrid', label: 'Hybrid' },
+  { value: 'OnSite', label: 'On-site' },
+];
 
 const inputClass = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500';
 
@@ -145,6 +152,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
       salaryMin: d.salaryMin ?? f.salaryMin,
       salaryMax: d.salaryMax ?? f.salaryMax,
       source: d.source || f.source,
+      workMode: d.workMode || f.workMode,
       jobDescription: d.jobDescription || f.jobDescription,
     }));
     if (d.jobDescription) setEditingDesc(false); // show it in the formatted read view
@@ -247,6 +255,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
       salaryMin: min,
       salaryMax: max,
       source: form.source || undefined,
+      workMode: form.workMode || null,
       jobDescription: form.jobDescription || undefined,
       notes: form.notes || undefined,
     });
@@ -350,6 +359,15 @@ export default function ApplicationDrawer({ application, open, onClose }) {
               placeholder="https://… link to the job posting"
               value={form.source} onChange={(e) => set('source')(e.target.value)} />
           </div>
+
+          <label className="block mb-4">
+            <span className="block text-sm font-medium text-slate-700 mb-1.5">Work mode</span>
+            <select aria-label="Work mode" className={inputClass}
+              value={form.workMode} onChange={(e) => set('workMode')(e.target.value)}>
+              <option value="">Unspecified</option>
+              {WORK_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+          </label>
 
           <div className="mb-4">
             <div className="mb-1.5 flex items-center justify-between">

@@ -28,6 +28,17 @@ const STATUS_STYLES = {
 
 const label = (status) => status.replace(/_/g, ' ');
 
+const WORK_MODE = {
+  Remote: { label: 'Remote', cls: 'bg-emerald-50 text-emerald-700' },
+  Hybrid: { label: 'Hybrid', cls: 'bg-amber-50 text-amber-700' },
+  OnSite: { label: 'On-site', cls: 'bg-slate-100 text-slate-600' },
+};
+function WorkModeChip({ mode }) {
+  const m = WORK_MODE[mode];
+  if (!m) return null;
+  return <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${m.cls}`}>{m.label}</span>;
+}
+
 const fmtDate = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);
 
 // Pure, unit-testable drop mapping. overId is the target column (a status id).
@@ -87,7 +98,12 @@ function Card({ app, onOpen }) {
         <div {...listeners} {...attributes} aria-label={`${app.position}, ${label(app.status)}`} className="flex-1 cursor-grab text-slate-800">
           <p className="font-medium">{app.position}</p>
           {app.company && <p className="text-xs text-slate-500">{app.company.name}</p>}
-          {salary && <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700">{salary}</span>}
+          {(salary || app.workMode) && (
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              {salary && <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700">{salary}</span>}
+              <WorkModeChip mode={app.workMode} />
+            </div>
+          )}
           {applied && <p className="mt-1 text-xs text-slate-400">Applied {applied}</p>}
         </div>
         <button
@@ -204,7 +220,9 @@ function ListView({ apps, sort, onSort, onOpen, onStatusChange }) {
               onClick={() => onOpen(a)}
               className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-sky-50/40"
             >
-              <td className="px-4 py-3 font-medium text-slate-900">{a.position}</td>
+              <td className="px-4 py-3 font-medium text-slate-900">
+                <span className="inline-flex items-center gap-2">{a.position}<WorkModeChip mode={a.workMode} /></span>
+              </td>
               <td className="px-4 py-3 text-slate-600">{a.company?.name || dash}</td>
               <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                 <select

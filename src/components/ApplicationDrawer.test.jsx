@@ -319,7 +319,7 @@ test('expands the job description into a modal and closes it without closing the
 test('auto-fills the new-application form from a pasted posting', async () => {
   server.use(http.post(`${API}/postings/parse`, () => HttpResponse.json({
     position: 'Staff Engineer', companyName: null, salaryMin: 120000, salaryMax: 150000,
-    source: null, jobDescription: 'Build things.\n- Ship code',
+    workMode: 'Remote', source: null, jobDescription: 'Build things.\n- Ship code',
   })));
   renderDrawer({ application: null });
   await userEvent.type(screen.getByLabelText('Job posting'), 'Staff Engineer at Acme — pasted posting body');
@@ -327,7 +327,13 @@ test('auto-fills the new-application form from a pasted posting', async () => {
   await waitFor(() => expect(screen.getByLabelText(/position/i)).toHaveValue('Staff Engineer'));
   expect(screen.getByLabelText(/min salary/i)).toHaveValue(120000);
   expect(screen.getByLabelText(/max salary/i)).toHaveValue(150000);
+  expect(screen.getByLabelText('Work mode')).toHaveValue('Remote');
   expect(screen.getByText(/Ship code/)).toBeInTheDocument(); // JD shown in the read view
+});
+
+test('edit mode prefills the work mode select', async () => {
+  renderDrawer({ application: { ...app, workMode: 'Hybrid' } });
+  await waitFor(() => expect(screen.getByLabelText('Work mode')).toHaveValue('Hybrid'));
 });
 
 test('shows the backend error inline when a posting cannot be parsed', async () => {

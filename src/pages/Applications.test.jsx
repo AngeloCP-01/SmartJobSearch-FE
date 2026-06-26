@@ -53,6 +53,15 @@ test('cards show the company name and salary chip', async () => {
   expect(screen.getByText(/90k/)).toBeInTheDocument();
 });
 
+test('cards show a work-mode chip', async () => {
+  server.use(http.get(`${API}/applications`, () => HttpResponse.json([
+    { id: 'a1', position: 'Backend Eng', status: 'Applied', workMode: 'Remote' },
+  ])));
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  expect(screen.getByText('Remote')).toBeInTheDocument();
+});
+
 test('cards show the applied date', async () => {
   server.use(http.get(`${API}/applications`, () => HttpResponse.json([
     { id: 'a1', position: 'Backend Eng', status: 'Applied', applicationDate: '2026-06-23T00:00:00.000Z' },
