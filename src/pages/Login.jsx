@@ -2,23 +2,19 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { useDemoLogin } from '../lib/demo';
 import Field from '../components/Field';
 import Button from '../components/Button';
-
-// Public demo account (seeded with realistic data) so reviewers can explore
-// without signing up. See the backend seed script.
-const DEMO_EMAIL = 'demo@smartjobsearch.app';
-const DEMO_PASSWORD = 'demo1234';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { tryDemo, demoBusy, demoError } = useDemoLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [demoBusy, setDemoBusy] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -31,19 +27,6 @@ export default function Login() {
       setError(err.response?.data?.error?.message || 'Login failed');
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function tryDemo() {
-    setError(null);
-    setDemoBusy(true);
-    try {
-      await login({ email: DEMO_EMAIL, password: DEMO_PASSWORD, rememberMe: true });
-      navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.error?.message || 'Demo is waking up — please try again in a moment.');
-    } finally {
-      setDemoBusy(false);
     }
   }
 
@@ -68,7 +51,7 @@ export default function Login() {
             />
             Keep me logged in
           </label>
-          {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
+          {(error || demoError) && <p role="alert" className="mb-3 text-sm text-red-600">{error || demoError}</p>}
           <Button type="submit" className="w-full" loading={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>
         </form>
 

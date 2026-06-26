@@ -7,6 +7,6 @@ export default function ProtectedRoute({ children }) {
   if (status === 'loading') {
     return <div className="grid min-h-dvh place-items-center"><Spinner /></div>;
   }
-  if (status === 'anonymous') return <Navigate to="/login" replace />;
+  if (status === 'anonymous') return <Navigate to="/welcome" replace />;
   return children;
 }
