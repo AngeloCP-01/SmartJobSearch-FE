@@ -8,6 +8,10 @@ export async function getAnalysisConfig() {
   const { data } = await api.get('/analysis/config');
   return data;
 }
+export async function generateCoverLetter({ applicationId, documentId }) {
+  const { data } = await api.post('/analysis/cover-letter', { applicationId, documentId });
+  return data;
+}
 export async function listAnalyses() {
   const { data } = await api.get('/analysis');
   return data;
