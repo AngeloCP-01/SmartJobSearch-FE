@@ -316,6 +316,30 @@ test('expands the job description into a modal and closes it without closing the
   expect(onClose).not.toHaveBeenCalled();
 });
 
+test('auto-fills the new-application form from a pasted posting', async () => {
+  server.use(http.post(`${API}/postings/parse`, () => HttpResponse.json({
+    position: 'Staff Engineer', companyName: null, salaryMin: 120000, salaryMax: 150000,
+    source: null, jobDescription: 'Build things.\n- Ship code',
+  })));
+  renderDrawer({ application: null });
+  await userEvent.type(screen.getByLabelText('Job posting'), 'Staff Engineer at Acme — pasted posting body');
+  await userEvent.click(screen.getByRole('button', { name: /auto-fill/i }));
+  await waitFor(() => expect(screen.getByLabelText(/position/i)).toHaveValue('Staff Engineer'));
+  expect(screen.getByLabelText(/min salary/i)).toHaveValue(120000);
+  expect(screen.getByLabelText(/max salary/i)).toHaveValue(150000);
+  expect(screen.getByText(/Ship code/)).toBeInTheDocument(); // JD shown in the read view
+});
+
+test('auto-fill prefills a new company when it does not match an existing one', async () => {
+  server.use(http.post(`${API}/postings/parse`, () => HttpResponse.json({
+    position: 'Dev', companyName: 'Globex', salaryMin: null, salaryMax: null, source: null, jobDescription: '',
+  })));
+  renderDrawer({ application: null });
+  await userEvent.type(screen.getByLabelText('Job posting'), 'a posting');
+  await userEvent.click(screen.getByRole('button', { name: /auto-fill/i }));
+  await waitFor(() => expect(screen.getByLabelText(/new company name/i)).toHaveValue('Globex'));
+});
+
 test('shows an "Open posting" link when the source is a URL', async () => {
   const withSource = { ...app, source: 'https://ph.indeed.com/viewjob?jk=abc' };
   renderDrawer({ application: withSource });

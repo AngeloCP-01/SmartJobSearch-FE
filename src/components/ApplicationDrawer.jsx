@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Trash2, Maximize2, ExternalLink } from 'lucide-react';
+import { X, Trash2, Maximize2, ExternalLink, Sparkles } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
 import { createApplication, updateApplication, deleteApplication, getApplication } from '../api/applications';
+import { parsePosting } from '../api/postings';
 import { listInterviews, createInterview, updateInterview, deleteInterview } from '../api/interviews';
 import { listContacts, linkContact, unlinkContact, createContact } from '../api/contacts';
 import { listDocuments, linkDocument, unlinkDocument } from '../api/documents';
@@ -57,6 +58,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const [newContactName, setNewContactName] = useState('');
   const [editingDesc, setEditingDesc] = useState(!application?.jobDescription);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [paste, setPaste] = useState('');
   const drawerRef = useRef(null);
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     setError(null);
     setEditingDesc(!application?.jobDescription);
     setDescExpanded(false);
+    setPaste('');
   }, [application, open]);
 
   useEffect(() => {
@@ -129,6 +132,30 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const activityItems = activity?.items || [];
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Apply AI-extracted posting fields onto the form. Only overwrites a field when
+  // the parser found a value, so a re-parse never blanks something you typed.
+  function applyParsed(d) {
+    const co = (d.companyName || '').trim();
+    const match = co ? companies.find((c) => c.name.toLowerCase() === co.toLowerCase()) : null;
+    setForm((f) => ({
+      ...f,
+      position: d.position || f.position,
+      companyId: match ? match.id : f.companyId,
+      salaryMin: d.salaryMin ?? f.salaryMin,
+      salaryMax: d.salaryMax ?? f.salaryMax,
+      source: d.source || f.source,
+      jobDescription: d.jobDescription || f.jobDescription,
+    }));
+    if (d.jobDescription) setEditingDesc(false); // show it in the formatted read view
+    if (co && !match) { setNewCompanyName(co); setShowNewCompany(true); } // prefill inline "new company"
+  }
+
+  const parse = useMutation({
+    mutationFn: (content) => parsePosting(content),
+    onSuccess: (d) => { applyParsed(d); setError(null); },
+    onError: (e) => setError(apiErrorMessage(e, 'Could not read that posting')),
+  });
 
   const save = useMutation({
     mutationFn: (body) => (isEdit ? updateApplication(application.id, body) : createApplication(body)),
@@ -244,6 +271,27 @@ export default function ApplicationDrawer({ application, open, onClose }) {
         </div>
 
         <form className="px-5 py-4" onSubmit={onSubmit}>
+          {!isEdit && (
+            <div className="mb-4 rounded-lg border border-sky-100 bg-sky-50/60 p-3">
+              <span className="mb-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-sky-800">
+                <Sparkles size={15} aria-hidden="true" /> Auto-fill from a posting
+              </span>
+              <textarea
+                aria-label="Job posting"
+                className={`${inputClass} text-sm`}
+                rows={3}
+                placeholder="Paste the job posting text (or a URL) and let AI fill the fields below…"
+                value={paste}
+                onChange={(e) => setPaste(e.target.value)}
+              />
+              <div className="mt-2">
+                <Button type="button" loading={parse.isPending} disabled={!paste.trim()} onClick={() => parse.mutate(paste.trim())}>
+                  <Sparkles size={15} aria-hidden="true" /> {parse.isPending ? 'Reading…' : 'Auto-fill'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <Field label="Position" name="position" value={form.position} onChange={set('position')} required />
 
           <div className="mb-4">
