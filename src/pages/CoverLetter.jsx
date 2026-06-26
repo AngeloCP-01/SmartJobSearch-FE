@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { PenLine, Copy, Download, Check, Sparkles } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { PenLine, Copy, Download, Check, Sparkles, Save } from 'lucide-react';
 import { listApplications, getApplication } from '../api/applications';
-import { listDocuments } from '../api/documents';
+import { listDocuments, createDocument, linkDocument } from '../api/documents';
 import { getAnalysisConfig, generateCoverLetter } from '../api/analysis';
 import Button from '../components/Button';
 
@@ -26,12 +26,14 @@ export function coverLetterFilename(position, company) {
 }
 
 export default function CoverLetter() {
+  const qc = useQueryClient();
   const [applicationId, setApplicationId] = useState('');
   const [documentId, setDocumentId] = useState('');
   const [letter, setLetter] = useState('');
   const [meta, setMeta] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const { data: applications = [] } = useQuery({ queryKey: ['applications'], queryFn: listApplications });
   const { data: documents = [] } = useQuery({ queryKey: ['documents'], queryFn: () => listDocuments() });
@@ -46,8 +48,28 @@ export default function CoverLetter() {
 
   const generate = useMutation({
     mutationFn: () => generateCoverLetter({ applicationId, documentId }),
-    onSuccess: (data) => { setLetter(data.coverLetter); setMeta(data.meta); setError(null); setCopied(false); },
+    onSuccess: (data) => { setLetter(data.coverLetter); setMeta(data.meta); setError(null); setCopied(false); setSaved(false); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not generate a cover letter. Please try again.'),
+  });
+
+  // Save the (possibly edited) letter as a .txt CoverLetter document, linked to
+  // the application so it shows up under that application's Documents too.
+  const saveDoc = useMutation({
+    mutationFn: async () => {
+      const fd = new FormData();
+      fd.append('file', new File([letter], coverLetterFilename(meta?.position, meta?.companyName), { type: 'text/plain' }));
+      fd.append('name', `Cover Letter — ${meta?.position || 'Untitled'}`);
+      fd.append('type', 'CoverLetter');
+      const doc = await createDocument(fd);
+      if (applicationId) await linkDocument(applicationId, doc.id);
+      return doc;
+    },
+    onSuccess: () => {
+      setSaved(true); setError(null); setTimeout(() => setSaved(false), 2500);
+      qc.invalidateQueries({ queryKey: ['documents'] });
+      if (applicationId) qc.invalidateQueries({ queryKey: ['application', applicationId] });
+    },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not save the cover letter to Documents.'),
   });
 
   function onGenerate(e) {
@@ -103,6 +125,9 @@ export default function CoverLetter() {
               </Button>
               <Button type="button" variant="subtle" onClick={() => downloadTxt(letter, coverLetterFilename(meta?.position, meta?.companyName))}>
                 <Download size={16} aria-hidden="true" /> .txt
+              </Button>
+              <Button type="button" onClick={() => saveDoc.mutate()} loading={saveDoc.isPending}>
+                {saved ? <Check size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />} {saved ? 'Saved' : 'Save to Documents'}
               </Button>
             </div>
           </div>
