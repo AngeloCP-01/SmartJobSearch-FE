@@ -5,11 +5,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server, API } from '../test/server';
 import CoverLetter, { coverLetterFilename } from './CoverLetter';
 
-test('coverLetterFilename derives the name from the application position', () => {
-  expect(coverLetterFilename('Senior Full Stack Engineer')).toBe('Senior Full Stack Engineer-cover-letter.txt');
-  expect(coverLetterFilename('Frontend Eng (React)')).toBe('Frontend Eng (React)-cover-letter.txt');
-  expect(coverLetterFilename('Dev/Ops: Lead')).toBe('DevOps Lead-cover-letter.txt'); // strips \ / : * ? " < > |
-  expect(coverLetterFilename('')).toBe('cover-letter.txt');
+test('coverLetterFilename derives the name from the position + company', () => {
+  expect(coverLetterFilename('Senior Full Stack Engineer', 'Northwind Cloud'))
+    .toBe('Senior Full Stack Engineer - Northwind Cloud-cover-letter.txt');
+  expect(coverLetterFilename('Frontend Eng (React)', '')).toBe('Frontend Eng (React)-cover-letter.txt');
+  expect(coverLetterFilename('Dev/Ops: Lead', 'Acme/Co')).toBe('DevOps Lead - AcmeCo-cover-letter.txt'); // strips \ / : * ? " < > |
+  expect(coverLetterFilename('Engineer', 'the company')).toBe('Engineer-cover-letter.txt'); // omits placeholder
+  expect(coverLetterFilename('', '')).toBe('cover-letter.txt');
 });
 
 function renderPage() {
