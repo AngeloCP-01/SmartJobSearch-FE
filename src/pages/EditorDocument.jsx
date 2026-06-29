@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ArrowLeft, Printer, Check, Loader2 } from 'lucide-react';
@@ -20,7 +20,12 @@ function EditorDocumentForm({ id, initialDoc }) {
     mutationFn: (body) => updateAuthoredDocument(id, body),
   });
 
-  useAutosave({ title, content }, (val) => save.mutate(val), 1200);
+  // Memoize so the autosave value keeps a stable reference across re-renders
+  // (e.g. save.isPending toggling). A fresh object literal each render would
+  // make useAutosave's [value] effect re-run and reschedule the debounce
+  // endlessly, looping a save every ~1200ms. Reference only changes on real edits.
+  const docValue = useMemo(() => ({ title, content }), [title, content]);
+  useAutosave(docValue, (val) => save.mutate(val), 1200);
 
   return (
     <div className="mx-auto max-w-4xl">
