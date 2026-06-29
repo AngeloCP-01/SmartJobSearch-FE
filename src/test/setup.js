@@ -17,3 +17,16 @@ afterEach(() => {
   setAccessToken(null); // reset in-memory auth between tests
 });
 afterAll(() => server.close());
+
+// ProseMirror/TipTap need these layout APIs, which jsdom does not implement.
+if (typeof Range !== 'undefined') {
+  if (!Range.prototype.getClientRects) {
+    Range.prototype.getClientRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: function* () {} });
+  }
+  if (!Range.prototype.getBoundingClientRect) {
+    Range.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, toJSON: () => ({}) });
+  }
+}
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+}
