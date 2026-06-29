@@ -35,4 +35,11 @@ test('create, edit, and persist an authored document', async ({ page }) => {
   // Reload the page and verify content persists
   await page.reload();
   await expect(page.getByText('Hello from Playwright')).toBeVisible();
+
+  // Typography + page layout persist across reload.
+  await page.getByLabel('Page size').selectOption('A4');
+  await expect(page.getByText(/saving…/i)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/saving…/i)).toBeHidden({ timeout: 10_000 });
+  await page.reload();
+  await expect(page.getByLabel('Page size')).toHaveValue('A4');
 });
