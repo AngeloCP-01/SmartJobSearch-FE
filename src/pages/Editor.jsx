@@ -28,7 +28,7 @@ export default function Editor() {
   const create = useMutation({
     mutationFn: () => createAuthoredDocument({ title: title.trim() || 'Untitled document', type }),
     onSuccess: (doc) => {
-      setTitle(''); setError(null);
+      setTitle(''); setType('Resume'); setError(null);
       qc.invalidateQueries({ queryKey: ['authored-documents'] });
       navigate(`/editor/${doc.id}`);
     },
@@ -38,6 +38,7 @@ export default function Editor() {
   const remove = useMutation({
     mutationFn: deleteAuthoredDocument,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['authored-documents'] }),
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not delete document'),
   });
 
   return (
