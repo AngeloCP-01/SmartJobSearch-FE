@@ -1,4 +1,4 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -17,21 +17,25 @@ function useTestEditor() {
 test('bold button toggles the bold mark on the selection', async () => {
   const { result } = renderHook(() => useTestEditor());
   const editor = result.current;
-  editor.commands.selectAll();
+  // selectAll dispatches a transaction; wrap it so the useEditor hook's
+  // re-render is flushed inside act() (keeps test output pristine).
+  await act(async () => { editor.commands.selectAll(); });
+  const user = userEvent.setup();
   render(<EditorToolbar editor={editor} />);
 
   expect(editor.isActive('bold')).toBe(false);
-  await userEvent.click(screen.getByRole('button', { name: /bold/i }));
+  await user.click(screen.getByRole('button', { name: /bold/i }));
   expect(editor.isActive('bold')).toBe(true);
 });
 
 test('bullet list button toggles a bullet list', async () => {
   const { result } = renderHook(() => useTestEditor());
   const editor = result.current;
-  editor.commands.selectAll();
+  await act(async () => { editor.commands.selectAll(); });
+  const user = userEvent.setup();
   render(<EditorToolbar editor={editor} />);
 
-  await userEvent.click(screen.getByRole('button', { name: /bullet list/i }));
+  await user.click(screen.getByRole('button', { name: /bullet list/i }));
   expect(editor.isActive('bulletList')).toBe(true);
 });
 

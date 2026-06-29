@@ -9,7 +9,7 @@ function Btn({ label, active, disabled, onClick, children }) {
     <button
       type="button"
       aria-label={label}
-      aria-pressed={active || undefined}
+      aria-pressed={active ?? undefined}
       disabled={disabled}
       onClick={onClick}
       className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600
