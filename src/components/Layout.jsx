@@ -32,6 +32,7 @@ const NAV = [
   { to: '/analysis', label: 'Analysis', icon: ScanSearch },
   { to: '/cover-letter', label: 'Cover Letter', icon: PenLine },
   { to: '/interviews', label: 'Interviews', icon: CalendarClock },
+  { to: '/editor', label: 'Editor', icon: PenLine },
 ];
 
 function navClass({ isActive }) {
