@@ -38,6 +38,7 @@ export default function EditorToolbar({ editor }) {
   const currentFont = editor.getAttributes('textStyle').fontFamily || '';
   const currentSize = editor.getAttributes('textStyle').fontSize || '';
   const currentColor = editor.getAttributes('textStyle').color || '#000000';
+  const currentHighlight = editor.getAttributes('highlight').color || '#fef08a';
 
   const onFont = (value) => {
     if (value) chain().setFontFamily(value).run();
@@ -102,6 +103,7 @@ export default function EditorToolbar({ editor }) {
         <input
           type="color"
           aria-label="Highlight color"
+          value={currentHighlight}
           onChange={(e) => chain().toggleHighlight({ color: e.target.value }).run()}
           className="sr-only"
         />

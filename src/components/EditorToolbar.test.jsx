@@ -96,8 +96,10 @@ test('highlight color input toggles a highlight mark', async () => {
   await act(async () => { editor.commands.selectAll(); });
   render(<EditorToolbar editor={editor} />);
 
+  // Use a swatch different from the input's controlled default (#fef08a) so the
+  // change event actually fires (React skips onChange when the value is unchanged).
   await act(async () => {
-    fireEvent.input(screen.getByLabelText('Highlight color'), { target: { value: '#fef08a' } });
+    fireEvent.input(screen.getByLabelText('Highlight color'), { target: { value: '#bbf7d0' } });
   });
   expect(editor.isActive('highlight')).toBe(true);
 });
