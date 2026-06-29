@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Smoke-test the deployed app by default; override for local/preview runs:
 //   E2E_BASE_URL=http://localhost:5173 npm run test:e2e
-const baseURL = process.env.E2E_BASE_URL || 'https://smart-job-search-fe.vercel.app';
+const baseURL = process.env.E2E_BASE_URL || 'https://jobtrail-hq.vercel.app';
 
 export default defineConfig({
   testDir: './e2e',

@@ -27,7 +27,7 @@ export default function Landing() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-sky-700 text-white">
             <Briefcase size={18} aria-hidden="true" />
           </span>
-          <span className="font-bold text-slate-900">Job Application Tracker</span>
+          <span className="font-bold text-slate-900">JobTrail</span>
         </div>
         <div className="flex items-center gap-2">
           <a href={FE_REPO} target="_blank" rel="noopener noreferrer"
@@ -123,7 +123,7 @@ export default function Landing() {
       </section>
 
       <footer className="mx-auto max-w-6xl px-5 py-8 text-center text-sm text-slate-400">
-        Job Application Tracker — a portfolio project.
+        JobTrail — a portfolio project.
       </footer>
     </div>
   );

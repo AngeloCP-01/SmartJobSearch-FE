@@ -42,4 +42,4 @@ List + create (application select, type, interviewer).
 Summary cards: totals, by-status, upcoming interviews.
 
 ## FE-6 — Deploy ☑
-**Live 2026-06-25** (free tier): FE→**Vercel** `https://smart-job-search-fe.vercel.app`, API→**Render** `https://smartjobsearch-api.onrender.com/api`, DB→**Neon**, uploads→**Supabase Storage**. `vercel.json` (`VITE_API_URL` → the Render `/api` base); backend `CORS_ORIGIN` = the bare Vercel origin (no path). Smoke-verified: register/login, cross-site refresh, upload/download, analysis. Full walkthrough + gotchas in `../SmartJobSearchCRM-BE/DEPLOY.md`.
+**Live 2026-06-25** (free tier): FE→**Vercel** `https://jobtrail-hq.vercel.app`, API→**Render** `https://smartjobsearch-api.onrender.com/api`, DB→**Neon**, uploads→**Supabase Storage**. `vercel.json` (`VITE_API_URL` → the Render `/api` base); backend `CORS_ORIGIN` = the bare Vercel origin (no path). Smoke-verified: register/login, cross-site refresh, upload/download, analysis. Full walkthrough + gotchas in `../SmartJobSearchCRM-BE/DEPLOY.md`.
