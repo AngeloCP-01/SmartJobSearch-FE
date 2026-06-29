@@ -2,7 +2,7 @@
 
 Status legend: ☐ Not started · ◐ In progress · ☑ Done · ⛔ Blocked
 
-**Last updated:** 2026-06-26
+**Last updated:** 2026-06-29
 **Master tracker:** `../TRACKER.md`
 
 | ID | Milestone | Depends on | Status | Notes |
@@ -14,6 +14,9 @@ Status legend: ☐ Not started · ◐ In progress · ☑ Done · ⛔ Blocked
 | FE-4 | Interviews | BE-4 | ☑ | list + create (application/type/interviewer) |
 | FE-5 | Dashboard | BE-5 | ☑ | totals, by-status, upcoming interviews cards |
 | FE-6 | Deploy | BE-6 | ☑ | **Live** 2026-06-25. FE on Vercel (https://jobtrail-hq.vercel.app), API on Render (https://smartjobsearch-api.onrender.com/api), Postgres on Neon, uploads on Supabase Storage. Verified: register/login + cross-site refresh + uploads. |
+
+## V3-5 — In-app document editor ("Editor") ☑ (2026-06-29, merged & pushed to GitHub — PR #1)
+A Google-Docs-style rich-text editor for authoring résumés / cover letters / notes **inside the app** (distinct from the V3-1 *uploads* "Documents" page). Built on **TipTap v2** (`@tiptap/react` + StarterKit + Underline + Link + TextAlign, pinned to `^2` — v3's StarterKit bundles Underline/Link and would collide). Pieces: `DocumentEditor` + `EditorToolbar` (bold/italic/underline/strike, H1–H3, bullet & numbered lists, link, alignment, undo/redo; `aria-pressed` reflects active state); **editor page `/editor/:id`** (`EditorDocument`) — loads a doc, editable title + body, **debounced autosave** (`useAutosave`, 1.2 s) with `Saving… / Saved / Couldn't save` status, "Print / Save as PDF" via `@media print` CSS; **list page `/editor`** (`Editor`) — create (→ navigate into the editor), delete, loading/empty/error; sidebar nav (`SquarePen`). `src/api/authoredDocuments.js`; query keys `['authored-documents']` / `['authored-document', id]`. Built across **9 TDD tasks** (subagent-driven) + a final **Opus whole-branch review** that caught & fixed an **infinite autosave loop** (memoized the autosave value), a **spurious save-on-load** (parent/child split so autosave only fires on real edits), and **silent data loss when the title is cleared** (guarded + a "Couldn't save" state). Tests: Vitest + MSW (real HTTP, real editor state, pristine) + a Playwright e2e smoke `e2e/editor.spec.js` (discovered; live run deferred to the full stack). **157 tests** (full suite green). Spec/plan in the BE repo `docs/superpowers/`. Deferred (post-v1 roadmap, in the spec): fonts/font-size, page layout, signature support, images, color/highlight, tables, find-replace, templates, DOCX export, comments, real-time collaboration.
 
 ## v1.5 — Application Details ☑ (2026-06-23, merged to `main`)
 Right-side drawer to view/edit/create an application with all fields; company picker with **inline create**; the application's **interviews** listed with add/delete; Kanban cards show **company name + salary chip**; New-application + open-card buttons. Focus-trapped dialog. (Backend side: `company` included on application responses + unlink — in the BE repo.)
