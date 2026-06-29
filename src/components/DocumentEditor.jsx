@@ -46,7 +46,7 @@ export default function DocumentEditor({ content, onChange }) {
     },
   });
 
-  const setPageSetting = (patch) => editor?.chain().focus().setPageSettings(patch).run();
+  const setPageSetting = (patch) => editor?.chain().setPageSettings(patch).run();
 
   const sheetClass = `editor-sheet mx-auto bg-white shadow-md ${PAGE_WIDTH_CLASS[page.pageSize]} ${MARGIN_PAD_CLASS[page.margin]}`;
 
