@@ -108,7 +108,7 @@ export default function Landing() {
           <h2 className="text-2xl font-bold text-slate-900">Built as a full-stack showcase</h2>
           <p className="mx-auto mt-2 max-w-2xl text-slate-600">
             React · Node · Express · PostgreSQL (Prisma) · Tailwind. Deployed on Vercel + Render + Neon,
-            with 280+ automated tests and CI.
+            with 300+ automated tests and CI.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button onClick={tryDemo} loading={demoBusy} className="px-5 py-3 text-base">

@@ -18,7 +18,7 @@ A full-stack CRM for managing a job search end to end — track applications acr
 - **AI cover-letter generator** — drafts a tailored cover letter from a job description + your résumé, editable inline and exportable. Reuses the same model-fallback resilience as the analysis engine.
 - **Job-posting auto-import** — paste a posting (text or a URL) and AI fills the new-application form: position, company, salary, and description.
 - **The full job-search workflow** — companies, contacts, interviews (with results), a reminders feed (upcoming/overdue), document storage, and a per-application activity timeline.
-- **Production-grade plumbing** — in-memory access token + httpOnly refresh cookie with single-flight refresh, app-wide loading feedback, accessible components, and **280+ automated tests** across both repos.
+- **Production-grade plumbing** — in-memory access token + httpOnly refresh cookie with single-flight refresh, app-wide loading feedback, accessible components, and **300+ automated tests** across both repos.
 
 ## Screenshots
 
@@ -44,7 +44,7 @@ A full-stack CRM for managing a job search end to end — track applications acr
 |---|---|
 | **Frontend** | React + Vite · React Router · TanStack Query · Tailwind CSS v4 · @dnd-kit · Recharts · lucide-react |
 | **Backend** | Node.js · Express · PostgreSQL (Prisma) · JWT (access + refresh cookie) · Zod · OpenRouter (AI) |
-| **Tests** | Vitest + RTL + MSW (frontend) · Jest + Supertest (backend) — 280+ tests |
+| **Tests** | Vitest + RTL + MSW (frontend) · Jest + Supertest (backend) — 319 tests (143 frontend · 176 backend) |
 | **Infra** | Vercel (web) · Render (API) · Neon (Postgres) · Supabase Storage (uploads) · GitHub Actions (CI + keep-alive) |
 
 ## Architecture
