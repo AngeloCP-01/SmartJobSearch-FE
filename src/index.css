@@ -19,3 +19,12 @@ body {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(400%); }
 }
+
+@media print {
+  body * { visibility: hidden; }
+  .document-print-area, .document-print-area * { visibility: visible; }
+  .document-print-area { position: absolute; inset: 0; border: 0; padding: 0; }
+  .document-print-area .tiptap { border: 0; padding: 0; min-height: 0; }
+  /* Hide the formatting toolbar (first child of the print area) when printing. */
+  .document-print-area > div:first-child { display: none; }
+}

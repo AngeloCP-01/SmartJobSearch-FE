@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, PenLine, CalendarClock, LogOut, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, PenLine, SquarePen, CalendarClock, LogOut, Briefcase } from 'lucide-react';
 import { useQuery, useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
 import { fetchReminders } from '../api/reminders';
@@ -32,6 +32,7 @@ const NAV = [
   { to: '/analysis', label: 'Analysis', icon: ScanSearch },
   { to: '/cover-letter', label: 'Cover Letter', icon: PenLine },
   { to: '/interviews', label: 'Interviews', icon: CalendarClock },
+  { to: '/editor', label: 'Editor', icon: SquarePen },
 ];
 
 function navClass({ isActive }) {
