@@ -49,10 +49,30 @@ A full-stack CRM for managing a job search end to end — track applications acr
 
 ## Architecture
 
-```
-Browser ─▶ Vercel (React SPA) ──VITE_API_URL──▶ Render (Express API) ──▶ Neon (Postgres)
-                                                      └── S3 driver ──▶ Supabase Storage (résumés)
-   in-memory access token + SameSite=None httpOnly refresh cookie
+```mermaid
+flowchart LR
+    B["Browser<br/>React + Vite SPA"]
+
+    subgraph Vercel
+        V["Static SPA host"]
+    end
+
+    subgraph Render["Render — Express API (modular monolith)"]
+        API["routes → controller → service → schema<br/>auth · companies · applications · interviews<br/>contacts · documents · activity · analysis · dashboard"]
+    end
+
+    DB[("Neon<br/>Postgres")]
+    S3["Supabase Storage<br/>(résumés)"]
+    AI["OpenRouter<br/>LLMs"]
+
+    B -->|"static assets"| V
+    B -->|"VITE_API_URL  →  /api (JWT)"| API
+    API -->|"Prisma"| DB
+    API -->|"S3 driver"| S3
+    API -->|"AI résumé/ATS analysis"| AI
+
+    AUTHNOTE["Auth: in-memory access token + SameSite=None; Secure httpOnly refresh cookie"]
+    B -.- AUTHNOTE
 ```
 
 The API is a **modular monolith** (one module per domain: auth, companies, applications, interviews, contacts, documents, activity, analysis…), each with its own routes/controller/service/schema and integration tests.
