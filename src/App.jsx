@@ -22,6 +22,7 @@ const Analysis = lazy(() => import('./pages/Analysis'));
 const CoverLetter = lazy(() => import('./pages/CoverLetter'));
 const Applications = lazy(() => import('./pages/Applications'));
 const Interviews = lazy(() => import('./pages/Interviews'));
+const EditorDocument = lazy(() => import('./pages/EditorDocument'));
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/cover-letter" element={<CoverLetter />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/interviews" element={<Interviews />} />
+          <Route path="/editor/:id" element={<EditorDocument />} />
         </Route>
       </Routes>
     </AuthProvider>
