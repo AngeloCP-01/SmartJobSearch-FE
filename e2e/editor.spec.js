@@ -27,8 +27,10 @@ test('create, edit, and persist an authored document', async ({ page }) => {
   await page.locator('.tiptap').click();
   await page.keyboard.type('Hello from Playwright');
 
-  // Wait for the "Saved" indicator
-  await expect(page.getByText(/saved/i)).toBeVisible({ timeout: 10_000 });
+  // Wait for "Saving…" to appear (debounce fires) and then disappear (save completes)
+  // before reloading — avoids racing the 1200ms debounce with the reload.
+  await expect(page.getByText(/saving…/i)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/saving…/i)).toBeHidden({ timeout: 10_000 });
 
   // Reload the page and verify content persists
   await page.reload();

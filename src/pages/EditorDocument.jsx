@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Printer, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Printer, Check, Loader2, TriangleAlert } from 'lucide-react';
 import { getAuthoredDocument, updateAuthoredDocument } from '../api/authoredDocuments';
 import { useAutosave } from '../hooks/useAutosave';
 import DocumentEditor from '../components/DocumentEditor';
@@ -25,7 +25,10 @@ function EditorDocumentForm({ id, initialDoc }) {
   // make useAutosave's [value] effect re-run and reschedule the debounce
   // endlessly, looping a save every ~1200ms. Reference only changes on real edits.
   const docValue = useMemo(() => ({ title, content }), [title, content]);
-  useAutosave(docValue, (val) => save.mutate(val), 1200);
+  useAutosave(docValue, (val) => {
+    if (val.title.trim() === '') return; // don't autosave an invalid (empty) title
+    save.mutate(val);
+  }, 1200);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -35,7 +38,9 @@ function EditorDocumentForm({ id, initialDoc }) {
         </Link>
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1 text-sm text-slate-500" aria-live="polite">
-            {save.isPending
+            {save.isError
+              ? (<span className="inline-flex items-center gap-1 text-red-600"><TriangleAlert size={14} aria-hidden="true" /> Couldn't save</span>)
+              : save.isPending
               ? (<><Loader2 size={14} className="animate-spin" aria-hidden="true" /> Saving…</>)
               : (<><Check size={14} aria-hidden="true" /> Saved</>)}
           </span>
