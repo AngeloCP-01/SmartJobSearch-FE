@@ -38,6 +38,14 @@ body {
 .search-match { background: #fde68a; border-radius: 2px; }
 .search-match--active { background: #f59e0b; color: #1e293b; }
 
+/* Editor images */
+.tiptap-image { position: relative; display: block; width: fit-content; max-width: 100%; }
+.tiptap-image[data-align="center"] { margin-left: auto; margin-right: auto; }
+.tiptap-image[data-align="right"] { margin-left: auto; }
+.tiptap-image[data-align="left"] { margin-right: auto; }
+.tiptap-image img { display: block; max-width: 100%; height: auto; }
+.tiptap-image__handle { position: absolute; right: -5px; bottom: -5px; width: 12px; height: 12px; background: #0284c7; border: 1px solid #fff; border-radius: 2px; cursor: nwse-resize; }
+
 /* Indeterminate sweep for the global top progress bar (TopProgressBar). */
 @keyframes indeterminate {
   0% { transform: translateX(-100%); }
@@ -54,4 +62,5 @@ body {
   .editor-sheet { box-shadow: none !important; margin: 0 !important; }
   .editor-sheet .tiptap { min-height: 0 !important; }
   .editor-sheet table, .editor-sheet th, .editor-sheet td { border: 1px solid #94a3b8 !important; }
+  .editor-sheet .tiptap-image__handle { display: none !important; }
 }

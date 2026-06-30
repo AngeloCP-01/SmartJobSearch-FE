@@ -18,6 +18,7 @@ import EditorToolbar from './EditorToolbar';
 import { FontSize } from './extensions/fontSize';
 import { LineHeight } from './extensions/lineHeight';
 import { PageDocument } from './extensions/pageDocument';
+import { ResizableImage } from './extensions/image';
 import { FindReplace } from './extensions/findReplace';
 import FindReplacePanel from './FindReplacePanel';
 import { PAGE_SIZES, MARGINS, PAGE_WIDTH_CLASS, MARGIN_PAD_CLASS } from './editorConstants';
@@ -57,6 +58,7 @@ export default function DocumentEditor({ content, onChange }) {
       TableCell,
       TaskList,
       TaskItem.configure({ nested: true }),
+      ResizableImage,
       FindReplace,
     ],
     content: content || { type: 'doc', content: [{ type: 'paragraph' }] },
