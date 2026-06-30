@@ -80,7 +80,14 @@ export const ResizableImage = Image.extend({
         window.addEventListener('pointerup', onUp);
       });
 
-      return { dom };
+      return {
+        dom,
+        // Clean up drag listeners if the node is destroyed mid-drag.
+        destroy() {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+        },
+      };
     };
   },
 });

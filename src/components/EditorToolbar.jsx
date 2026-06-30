@@ -49,7 +49,6 @@ export default function EditorToolbar({ editor, onToggleSearch }) {
     else chain().unsetLineHeight().run();
   };
   const fileRef = useRef(null);
-  const onPickImage = () => fileRef.current?.click();
   const onImageFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
