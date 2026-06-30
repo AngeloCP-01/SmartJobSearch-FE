@@ -16,6 +16,7 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import EditorToolbar from './EditorToolbar';
 import { FontSize } from './extensions/fontSize';
+import { LineHeight } from './extensions/lineHeight';
 import { PageDocument } from './extensions/pageDocument';
 import { FindReplace } from './extensions/findReplace';
 import FindReplacePanel from './FindReplacePanel';
@@ -37,11 +38,17 @@ export default function DocumentEditor({ content, onChange }) {
       StarterKit.configure({ heading: { levels: [1, 2, 3] }, document: false }),
       PageDocument,
       Underline,
-      Link.configure({ openOnClick: false, autolink: true }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        defaultProtocol: 'https',
+        HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' },
+      }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TextStyle,
       FontFamily,
       FontSize,
+      LineHeight,
       Color,
       Highlight.configure({ multicolor: true }),
       Table.configure({ resizable: true }),

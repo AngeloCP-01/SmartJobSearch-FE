@@ -4,7 +4,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2,
   Highlighter, Table as TableIcon, ListChecks, Search,
 } from 'lucide-react';
-import { FONTS, FONT_SIZES, DEFAULT_TEXT_COLOR, DEFAULT_HIGHLIGHT } from './editorConstants';
+import { FONTS, FONT_SIZES, LINE_HEIGHTS, DEFAULT_TEXT_COLOR, DEFAULT_HIGHLIGHT } from './editorConstants';
 
 function Btn({ label, active, disabled, onClick, children }) {
   return (
@@ -29,14 +29,23 @@ export default function EditorToolbar({ editor, onToggleSearch }) {
 
   const setLink = () => {
     const prev = editor.getAttributes('link').href || '';
-    const url = window.prompt('Link URL', prev);
-    if (url === null) return; // cancelled
+    const input = window.prompt('Link URL', prev);
+    if (input === null) return; // cancelled
+    const url = input.trim();
     if (url === '') { chain().unsetLink().run(); return; }
-    chain().extendMarkRange('link').setLink({ href: url }).run();
+    // Normalize a bare domain (e.g. "google.com") to an absolute https URL so
+    // the link is real/clickable, not a broken relative link.
+    const href = /^(https?:\/\/|mailto:|tel:)/i.test(url) ? url : `https://${url}`;
+    chain().extendMarkRange('link').setLink({ href }).run();
   };
 
   const currentFont = editor.getAttributes('textStyle').fontFamily || '';
   const currentSize = editor.getAttributes('textStyle').fontSize || '';
+  const currentLineHeight = editor.getAttributes('paragraph').lineHeight || editor.getAttributes('heading').lineHeight || '';
+  const onLineHeight = (value) => {
+    if (value) chain().setLineHeight(value).run();
+    else chain().unsetLineHeight().run();
+  };
   const currentColor = editor.getAttributes('textStyle').color || DEFAULT_TEXT_COLOR;
   const currentHighlight = editor.getAttributes('highlight').color || DEFAULT_HIGHLIGHT;
 
@@ -71,6 +80,15 @@ export default function EditorToolbar({ editor, onToggleSearch }) {
       <Btn label="Align left" active={editor.isActive({ textAlign: 'left' })} onClick={() => chain().setTextAlign('left').run()}><AlignLeft size={16} /></Btn>
       <Btn label="Align center" active={editor.isActive({ textAlign: 'center' })} onClick={() => chain().setTextAlign('center').run()}><AlignCenter size={16} /></Btn>
       <Btn label="Align right" active={editor.isActive({ textAlign: 'right' })} onClick={() => chain().setTextAlign('right').run()}><AlignRight size={16} /></Btn>
+      <select
+        aria-label="Line spacing"
+        value={currentLineHeight}
+        onChange={(e) => onLineHeight(e.target.value)}
+        className="h-8 rounded-md border border-slate-200 bg-white px-1 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+      >
+        <option value="">Spacing</option>
+        {LINE_HEIGHTS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+      </select>
       <span className="mx-1 h-5 w-px bg-slate-200" />
       <select
         aria-label="Font family"

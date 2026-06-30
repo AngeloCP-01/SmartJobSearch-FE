@@ -15,6 +15,14 @@ export const FONTS = [
 
 export const FONT_SIZES = ['8pt', '9pt', '10pt', '10.5pt', '11pt', '12pt', '14pt', '16pt', '18pt', '24pt', '36pt'];
 
+// Line spacing options (CSS line-height values).
+export const LINE_HEIGHTS = [
+  { label: 'Single', value: '1' },
+  { label: '1.15', value: '1.15' },
+  { label: '1.5', value: '1.5' },
+  { label: 'Double', value: '2' },
+];
+
 export const HIGHLIGHT_COLORS = ['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8'];
 
 // Swatch defaults shown by the color pickers when the selection has no color mark yet.
