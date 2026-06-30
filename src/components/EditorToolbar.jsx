@@ -2,7 +2,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, List, ListOrdered, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2,
-  Highlighter, Table as TableIcon, ListChecks,
+  Highlighter, Table as TableIcon, ListChecks, Search,
 } from 'lucide-react';
 import { FONTS, FONT_SIZES, DEFAULT_TEXT_COLOR, DEFAULT_HIGHLIGHT } from './editorConstants';
 
@@ -23,7 +23,7 @@ function Btn({ label, active, disabled, onClick, children }) {
   );
 }
 
-export default function EditorToolbar({ editor }) {
+export default function EditorToolbar({ editor, onToggleSearch }) {
   if (!editor) return null;
   const chain = () => editor.chain().focus();
 
@@ -112,6 +112,7 @@ export default function EditorToolbar({ editor }) {
       <Btn label="Remove highlight" onClick={() => chain().unsetHighlight().run()}><Highlighter size={16} className="opacity-40" /></Btn>
       <span className="mx-1 h-5 w-px bg-slate-200" />
       <Btn label="Insert table" onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><TableIcon size={16} /></Btn>
+      <Btn label="Find and replace" onClick={() => onToggleSearch?.()}><Search size={16} /></Btn>
       {editor.isActive('table') && (
         <>
           <button type="button" aria-label="Add column" onClick={() => chain().addColumnAfter().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">Col+</button>

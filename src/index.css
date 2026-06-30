@@ -24,6 +24,10 @@ body {
 .tiptap ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5rem; }
 .tiptap ul[data-type="taskList"] li > label { margin-top: 0.2rem; }
 
+/* Search/find-replace highlights */
+.search-match { background: #fde68a; border-radius: 2px; }
+.search-match--active { background: #f59e0b; color: #1e293b; }
+
 /* Indeterminate sweep for the global top progress bar (TopProgressBar). */
 @keyframes indeterminate {
   0% { transform: translateX(-100%); }

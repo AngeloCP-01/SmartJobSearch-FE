@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -17,6 +17,8 @@ import TaskItem from '@tiptap/extension-task-item';
 import EditorToolbar from './EditorToolbar';
 import { FontSize } from './extensions/fontSize';
 import { PageDocument } from './extensions/pageDocument';
+import { FindReplace } from './extensions/findReplace';
+import FindReplacePanel from './FindReplacePanel';
 import { PAGE_SIZES, MARGINS, PAGE_WIDTH_CLASS, MARGIN_PAD_CLASS } from './editorConstants';
 
 function pageOf(content) {
@@ -28,6 +30,7 @@ function pageOf(content) {
 
 export default function DocumentEditor({ content, onChange }) {
   const [page, setPage] = useState(() => pageOf(content));
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -47,6 +50,7 @@ export default function DocumentEditor({ content, onChange }) {
       TableCell,
       TaskList,
       TaskItem.configure({ nested: true }),
+      FindReplace,
     ],
     content: content || { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
@@ -57,6 +61,17 @@ export default function DocumentEditor({ content, onChange }) {
       onChange?.(editor.getJSON());
     },
   });
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   const setPageSetting = (patch) => editor?.chain().setPageSettings(patch).run();
 
@@ -92,7 +107,8 @@ export default function DocumentEditor({ content, onChange }) {
             </select>
           </label>
         </div>
-        <EditorToolbar editor={editor} />
+        {searchOpen && <FindReplacePanel editor={editor} onClose={() => setSearchOpen(false)} />}
+        <EditorToolbar editor={editor} onToggleSearch={() => setSearchOpen((o) => !o)} />
       </div>
 
       <div className="editor-canvas-backdrop rounded-b-xl border border-t-0 border-sky-100 bg-slate-100 p-6">
