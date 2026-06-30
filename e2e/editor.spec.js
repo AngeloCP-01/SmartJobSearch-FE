@@ -36,6 +36,13 @@ test('create, edit, and persist an authored document', async ({ page }) => {
   await page.reload();
   await expect(page.getByText('Hello from Playwright')).toBeVisible();
 
+  // Tables + find/replace.
+  await page.getByRole('button', { name: /insert table/i }).click();
+  await expect(page.locator('.tiptap table')).toBeVisible();
+  await page.getByRole('button', { name: /find and replace/i }).click();
+  await page.getByLabel('Find').fill('Playwright');
+  await expect(page.getByText(/1 of 1/i)).toBeVisible();
+
   // Typography + page layout persist across reload.
   await page.getByLabel('Page size').selectOption('A4');
   await expect(page.getByText(/saving…/i)).toBeVisible({ timeout: 10_000 });
