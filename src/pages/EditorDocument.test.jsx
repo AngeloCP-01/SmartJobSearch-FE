@@ -52,6 +52,32 @@ test('autosaves an edited title and shows a saved status', async () => {
   await waitFor(() => expect(screen.getByText(/saved/i)).toBeInTheDocument());
 });
 
+test('shows "Unsaved changes" after an edit and the Save button persists immediately', async () => {
+  let patched = null;
+  server.use(
+    http.get(`${API}/authored-documents/doc1`, () => HttpResponse.json(DOC)),
+    http.patch(`${API}/authored-documents/doc1`, async ({ request }) => {
+      patched = await request.json();
+      return HttpResponse.json({ ...DOC, ...patched });
+    }),
+  );
+  renderEditor();
+  await waitFor(() => expect(screen.getByDisplayValue('My Resume')).toBeInTheDocument());
+
+  const user = userEvent.setup();
+  const title = screen.getByLabelText(/document title/i);
+  await user.clear(title);
+  await user.type(title, 'Saved Now');
+
+  // Pending edits are honestly reported (not a misleading "Saved").
+  expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(patched).not.toBeNull());
+  expect(patched.title).toBe('Saved Now');
+  await waitFor(() => expect(screen.getByText(/^saved$/i)).toBeInTheDocument());
+});
+
 test('print button calls window.print', async () => {
   server.use(http.get(`${API}/authored-documents/doc1`, () => HttpResponse.json(DOC)));
   const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
