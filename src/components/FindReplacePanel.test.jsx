@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -32,7 +32,7 @@ test('Replace all updates the document and reports no results', async () => {
   expect(editor.getText()).toBe('dog dog dog');
 });
 
-test('Close clears the search and calls onClose', async () => {
+test('Close button calls onClose', async () => {
   const onClose = vi.fn();
   const { result } = renderHook(() => useTestEditor());
   const editor = result.current;

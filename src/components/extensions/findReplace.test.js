@@ -66,3 +66,14 @@ test('clearSearch empties the matches', () => {
   expect(st(editor).matches.length).toBe(0);
   editor.destroy();
 });
+
+test('clearSearch resets the replace term and case sensitivity', () => {
+  const editor = makeEditor();
+  editor.commands.setReplaceTerm('dog');
+  editor.commands.setCaseSensitive(true);
+  editor.commands.clearSearch();
+  const s = searchKey.getState(editor.state);
+  expect(s.replaceTerm).toBe('');
+  expect(s.caseSensitive).toBe(false);
+  editor.destroy();
+});

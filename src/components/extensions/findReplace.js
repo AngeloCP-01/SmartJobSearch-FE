@@ -75,7 +75,7 @@ export const FindReplace = Extension.create({
                   )
                 : DecorationSet.empty;
               next = { ...next, matches, activeIndex, decorations };
-            } else if (tr.mapping && value.decorations !== DecorationSet.empty) {
+            } else if (value.decorations !== DecorationSet.empty) {
               next = { ...next, decorations: value.decorations.map(tr.mapping, tr.doc) };
             }
             return next;
@@ -111,7 +111,7 @@ export const FindReplace = Extension.create({
       setSearchTerm: (term) => setMeta({ searchTerm: term, activeIndex: 0 }),
       setReplaceTerm: (term) => setMeta({ replaceTerm: term }),
       setCaseSensitive: (caseSensitive) => setMeta({ caseSensitive, activeIndex: 0 }),
-      clearSearch: () => setMeta({ searchTerm: '', matches: [], activeIndex: 0 }),
+      clearSearch: () => setMeta({ searchTerm: '', replaceTerm: '', caseSensitive: false, matches: [], activeIndex: 0 }),
       findNext: () => gotoIndex((i, n) => (i + 1) % n),
       findPrev: () => gotoIndex((i, n) => (i - 1 + n) % n),
       replaceCurrent: () => ({ state, dispatch }) => {

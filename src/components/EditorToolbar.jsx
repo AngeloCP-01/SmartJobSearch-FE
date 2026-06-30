@@ -115,12 +115,12 @@ export default function EditorToolbar({ editor, onToggleSearch }) {
       <Btn label="Find and replace" onClick={() => onToggleSearch?.()}><Search size={16} /></Btn>
       {editor.isActive('table') && (
         <>
-          <button type="button" aria-label="Add column" onClick={() => chain().addColumnAfter().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">Col+</button>
-          <button type="button" aria-label="Delete column" onClick={() => chain().deleteColumn().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">Col−</button>
-          <button type="button" aria-label="Add row" onClick={() => chain().addRowAfter().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">Row+</button>
-          <button type="button" aria-label="Delete row" onClick={() => chain().deleteRow().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">Row−</button>
-          <button type="button" aria-label="Toggle header row" onClick={() => chain().toggleHeaderRow().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">Header</button>
-          <button type="button" aria-label="Delete table" onClick={() => chain().deleteTable().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-red-600 hover:bg-red-50">Delete</button>
+          <button type="button" aria-label="Add column" onClick={() => chain().addColumnAfter().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Col+</button>
+          <button type="button" aria-label="Delete column" onClick={() => chain().deleteColumn().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Col−</button>
+          <button type="button" aria-label="Add row" onClick={() => chain().addRowAfter().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Row+</button>
+          <button type="button" aria-label="Delete row" onClick={() => chain().deleteRow().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Row−</button>
+          <button type="button" aria-label="Toggle header row" onClick={() => chain().toggleHeaderRow().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Header</button>
+          <button type="button" aria-label="Delete table" onClick={() => chain().deleteTable().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-red-600 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Delete</button>
         </>
       )}
     </div>

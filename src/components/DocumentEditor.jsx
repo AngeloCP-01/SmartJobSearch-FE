@@ -66,7 +66,7 @@ export default function DocumentEditor({ content, onChange }) {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
         e.preventDefault();
-        setSearchOpen(true);
+        setSearchOpen((o) => !o);
       }
     };
     document.addEventListener('keydown', onKey);
