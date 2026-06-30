@@ -2,7 +2,9 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, List, ListOrdered, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2,
+  Highlighter,
 } from 'lucide-react';
+import { FONTS, FONT_SIZES, DEFAULT_TEXT_COLOR, DEFAULT_HIGHLIGHT } from './editorConstants';
 
 function Btn({ label, active, disabled, onClick, children }) {
   return (
@@ -33,6 +35,20 @@ export default function EditorToolbar({ editor }) {
     chain().extendMarkRange('link').setLink({ href: url }).run();
   };
 
+  const currentFont = editor.getAttributes('textStyle').fontFamily || '';
+  const currentSize = editor.getAttributes('textStyle').fontSize || '';
+  const currentColor = editor.getAttributes('textStyle').color || DEFAULT_TEXT_COLOR;
+  const currentHighlight = editor.getAttributes('highlight').color || DEFAULT_HIGHLIGHT;
+
+  const onFont = (value) => {
+    if (value) chain().setFontFamily(value).run();
+    else chain().unsetFontFamily().run();
+  };
+  const onSize = (value) => {
+    if (value) chain().setFontSize(value).run();
+    else chain().unsetFontSize().run();
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-1 rounded-t-xl border border-b-0 border-sky-100 bg-white px-2 py-1.5">
       <Btn label="Undo" disabled={!editor.can().undo()} onClick={() => chain().undo().run()}><Undo2 size={16} /></Btn>
@@ -54,6 +70,45 @@ export default function EditorToolbar({ editor }) {
       <Btn label="Align left" active={editor.isActive({ textAlign: 'left' })} onClick={() => chain().setTextAlign('left').run()}><AlignLeft size={16} /></Btn>
       <Btn label="Align center" active={editor.isActive({ textAlign: 'center' })} onClick={() => chain().setTextAlign('center').run()}><AlignCenter size={16} /></Btn>
       <Btn label="Align right" active={editor.isActive({ textAlign: 'right' })} onClick={() => chain().setTextAlign('right').run()}><AlignRight size={16} /></Btn>
+      <span className="mx-1 h-5 w-px bg-slate-200" />
+      <select
+        aria-label="Font family"
+        value={currentFont}
+        onChange={(e) => onFont(e.target.value)}
+        className="h-8 rounded-md border border-slate-200 bg-white px-1 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+      >
+        {FONTS.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
+      </select>
+      <select
+        aria-label="Font size"
+        value={currentSize}
+        onChange={(e) => onSize(e.target.value)}
+        className="h-8 rounded-md border border-slate-200 bg-white px-1 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+      >
+        <option value="">Size</option>
+        {FONT_SIZES.map((s) => <option key={s} value={s}>{s.replace('pt', '')}</option>)}
+      </select>
+      <label className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md hover:bg-slate-100" title="Text color">
+        <span className="text-sm font-semibold text-slate-700" aria-hidden="true">A</span>
+        <input
+          type="color"
+          aria-label="Text color"
+          value={currentColor}
+          onChange={(e) => chain().setColor(e.target.value).run()}
+          className="sr-only"
+        />
+      </label>
+      <label className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md hover:bg-slate-100" title="Highlight">
+        <Highlighter size={16} aria-hidden="true" />
+        <input
+          type="color"
+          aria-label="Highlight color"
+          value={currentHighlight}
+          onChange={(e) => chain().toggleHighlight({ color: e.target.value }).run()}
+          className="sr-only"
+        />
+      </label>
+      <Btn label="Remove highlight" onClick={() => chain().unsetHighlight().run()}><Highlighter size={16} className="opacity-40" /></Btn>
     </div>
   );
 }
