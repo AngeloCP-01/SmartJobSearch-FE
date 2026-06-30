@@ -17,6 +17,10 @@ export const FONT_SIZES = ['8pt', '9pt', '10pt', '10.5pt', '11pt', '12pt', '14pt
 
 export const HIGHLIGHT_COLORS = ['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8'];
 
+// Swatch defaults shown by the color pickers when the selection has no color mark yet.
+export const DEFAULT_TEXT_COLOR = '#000000';
+export const DEFAULT_HIGHLIGHT = HIGHLIGHT_COLORS[0];
+
 // Page geometry. Class strings are complete literals so Tailwind emits them.
 export const PAGE_SIZES = [
   { label: 'Letter', value: 'Letter' },

@@ -4,7 +4,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2,
   Highlighter,
 } from 'lucide-react';
-import { FONTS, FONT_SIZES } from './editorConstants';
+import { FONTS, FONT_SIZES, DEFAULT_TEXT_COLOR, DEFAULT_HIGHLIGHT } from './editorConstants';
 
 function Btn({ label, active, disabled, onClick, children }) {
   return (
@@ -37,8 +37,8 @@ export default function EditorToolbar({ editor }) {
 
   const currentFont = editor.getAttributes('textStyle').fontFamily || '';
   const currentSize = editor.getAttributes('textStyle').fontSize || '';
-  const currentColor = editor.getAttributes('textStyle').color || '#000000';
-  const currentHighlight = editor.getAttributes('highlight').color || '#fef08a';
+  const currentColor = editor.getAttributes('textStyle').color || DEFAULT_TEXT_COLOR;
+  const currentHighlight = editor.getAttributes('highlight').color || DEFAULT_HIGHLIGHT;
 
   const onFont = (value) => {
     if (value) chain().setFontFamily(value).run();
