@@ -2,7 +2,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, List, ListOrdered, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2,
-  Highlighter, Table as TableIcon,
+  Highlighter, Table as TableIcon, ListChecks,
 } from 'lucide-react';
 import { FONTS, FONT_SIZES, DEFAULT_TEXT_COLOR, DEFAULT_HIGHLIGHT } from './editorConstants';
 
@@ -65,6 +65,7 @@ export default function EditorToolbar({ editor }) {
       <span className="mx-1 h-5 w-px bg-slate-200" />
       <Btn label="Bullet list" active={editor.isActive('bulletList')} onClick={() => chain().toggleBulletList().run()}><List size={16} /></Btn>
       <Btn label="Numbered list" active={editor.isActive('orderedList')} onClick={() => chain().toggleOrderedList().run()}><ListOrdered size={16} /></Btn>
+      <Btn label="Checklist" active={editor.isActive('taskList')} onClick={() => chain().toggleTaskList().run()}><ListChecks size={16} /></Btn>
       <Btn label="Link" active={editor.isActive('link')} onClick={setLink}><LinkIcon size={16} /></Btn>
       <span className="mx-1 h-5 w-px bg-slate-200" />
       <Btn label="Align left" active={editor.isActive({ textAlign: 'left' })} onClick={() => chain().setTextAlign('left').run()}><AlignLeft size={16} /></Btn>

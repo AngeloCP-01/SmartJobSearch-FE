@@ -19,6 +19,11 @@ body {
 .tiptap th, .tiptap td { border: 1px solid #cbd5e1; padding: 4px 8px; vertical-align: top; }
 .tiptap th { background: #f1f5f9; font-weight: 600; }
 
+/* Task lists */
+.tiptap ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.tiptap ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5rem; }
+.tiptap ul[data-type="taskList"] li > label { margin-top: 0.2rem; }
+
 /* Indeterminate sweep for the global top progress bar (TopProgressBar). */
 @keyframes indeterminate {
   0% { transform: translateX(-100%); }

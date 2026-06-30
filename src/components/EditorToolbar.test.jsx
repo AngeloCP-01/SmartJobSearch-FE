@@ -10,6 +10,8 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { renderHook } from '@testing-library/react';
 import { FontSize } from './extensions/fontSize';
 import EditorToolbar from './EditorToolbar';
@@ -29,6 +31,8 @@ function useTestEditor() {
       TableRow,
       TableHeader,
       TableCell,
+      TaskList,
+      TaskItem.configure({ nested: true }),
     ],
     content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hello world' }] }] },
   });
@@ -147,4 +151,15 @@ test('add row increases the table row count', async () => {
   await user.click(screen.getByRole('button', { name: /add row/i }));
   const rowsAfter = editor.getJSON().content.find((n) => n.type === 'table').content.length;
   expect(rowsAfter).toBe(rowsBefore + 1);
+});
+
+test('checklist button toggles a task list', async () => {
+  const { result } = renderHook(() => useTestEditor());
+  const editor = result.current;
+  await act(async () => { editor.commands.selectAll(); });
+  const user = userEvent.setup();
+  render(<EditorToolbar editor={editor} />);
+
+  await user.click(screen.getByRole('button', { name: /checklist/i }));
+  expect(editor.isActive('taskList')).toBe(true);
 });
