@@ -13,6 +13,8 @@ Master coordination: `../TASKS.md`
 >
 > **Update (2026-06-29):** **V3-5 — In-app document editor ("Editor")** done, reviewed, **PR #1 merged to `main` (CI + Vercel green)**. TipTap v2 editor + toolbar, debounced autosave (Saving/Saved/Couldn't-save), list `/editor` + editor `/editor/:id`, print/PDF, sidebar nav; Vitest+MSW + a Playwright e2e smoke. **157 tests.** Spec/plan in the BE repo `docs/superpowers/`. See `TRACKER.md` (V3-5 section) for detail.
 >
+> **Update (2026-06-30):** **V3-6 — Editor v2: Typography & Page Layout** done, reviewed (6 TDD tasks + final Opus review), **merged to `main`** (frontend-only). Font family + size (custom `FontSize` ext), color/highlight, paper-style page canvas (Letter/A4 + margins) stored in the TipTap `content` JSON — no backend/migration. **170 tests.** Spec/plan: BE `docs/superpowers/…editor-v2-typography…`. See `TRACKER.md` (V3-6 section).
+>
 > **Update (2026-06-26):** post-deploy UX polish — Applications **List view + Status/Company filters**, Documents **upload dropzone**, and **app-wide loading feedback** (global top progress bar + `<Spinner>` + Button `loading`). All merged to `main`; **131 tests**. See `TRACKER.md` Notes.
 >
 > **Portfolio-readiness (2026-06-26):** one-click **demo login** (seeded account), public **landing page** (`/welcome`), polished **README + live screenshots + CI** (green badge), and **perf/a11y** (route code-splitting 761→284 KB, skip link, OG meta). **134 tests**. See `TRACKER.md` Notes.
