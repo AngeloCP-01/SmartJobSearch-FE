@@ -61,10 +61,12 @@ export const ResizableImage = Image.extend({
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
         if (typeof getPos === 'function') {
+          const pos = getPos();
           editor
             .chain()
-            .command(({ tr }) => {
-              tr.setNodeMarkup(getPos(), undefined, { ...node.attrs, width: img.style.width });
+            .command(({ tr, state }) => {
+              const currentAttrs = state.doc.nodeAt(pos)?.attrs ?? node.attrs;
+              tr.setNodeMarkup(pos, undefined, { ...currentAttrs, width: img.style.width });
               return true;
             })
             .run();
