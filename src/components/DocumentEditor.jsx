@@ -8,6 +8,10 @@ import TextStyle from '@tiptap/extension-text-style';
 import FontFamily from '@tiptap/extension-font-family';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
 import EditorToolbar from './EditorToolbar';
 import { FontSize } from './extensions/fontSize';
 import { PageDocument } from './extensions/pageDocument';
@@ -35,6 +39,10 @@ export default function DocumentEditor({ content, onChange }) {
       FontSize,
       Color,
       Highlight.configure({ multicolor: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: content || { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
