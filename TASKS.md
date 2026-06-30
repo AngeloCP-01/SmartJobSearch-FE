@@ -15,6 +15,8 @@ Master coordination: `../TASKS.md`
 >
 > **Update (2026-06-30):** **V3-6 — Editor v2: Typography & Page Layout** done, reviewed (6 TDD tasks + final Opus review), **merged to `main`** (frontend-only). Font family + size (custom `FontSize` ext), color/highlight, paper-style page canvas (Letter/A4 + margins) stored in the TipTap `content` JSON — no backend/migration. **170 tests.** Spec/plan: BE `docs/superpowers/…editor-v2-typography…`. See `TRACKER.md` (V3-6 section).
 >
+> **Update (2026-06-30):** **V3-7 — Editor v3: Tables & Find/Replace** done, reviewed (6 TDD tasks + final Opus review), **merged to `main`** (frontend-only). TipTap tables (insert/edit toolbar, resizable, print borders), task-list checkboxes, and a custom find & replace ProseMirror extension + panel (Ctrl/Cmd-F). Additive to the `content` JSON; no backend. **186 tests.** Plus post-merge polish (manual testing): installed `@tailwindcss/typography` (lists/headings now render — `prose` had been inert since v1), clickable+styled links, checklist alignment, and a line-spacing dropdown. Spec/plan: BE `docs/superpowers/…editor-v3-tables-findreplace…`. See `TRACKER.md` (V3-7 section).
+>
 > **Update (2026-06-26):** post-deploy UX polish — Applications **List view + Status/Company filters**, Documents **upload dropzone**, and **app-wide loading feedback** (global top progress bar + `<Spinner>` + Button `loading`). All merged to `main`; **131 tests**. See `TRACKER.md` Notes.
 >
 > **Portfolio-readiness (2026-06-26):** one-click **demo login** (seeded account), public **landing page** (`/welcome`), polished **README + live screenshots + CI** (green badge), and **perf/a11y** (route code-splitting 761→284 KB, skip link, OG meta). **134 tests**. See `TRACKER.md` Notes.
