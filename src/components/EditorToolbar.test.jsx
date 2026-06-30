@@ -15,9 +15,8 @@ import TaskItem from '@tiptap/extension-task-item';
 import { renderHook } from '@testing-library/react';
 import { FontSize } from './extensions/fontSize';
 import EditorToolbar from './EditorToolbar';
-import { http, HttpResponse } from 'msw';
-import { server, API } from '../test/server';
 import { ResizableImage } from './extensions/image';
+import * as imagesApi from '../api/images';
 
 afterEach(cleanup);
 
@@ -169,8 +168,15 @@ test('checklist button toggles a task list', async () => {
 });
 
 test('insert image uploads the file and inserts an image node', async () => {
-  server.use(http.post(`${API}/images`, () =>
-    HttpResponse.json({ id: 'img1', url: 'http://localhost:4000/api/images/img1' }, { status: 201 })));
+  // jsdom's XHR cannot serialize File objects in request bodies (File.text() is
+  // unimplemented), so a real axios POST with FormData+File hangs forever in
+  // this test environment. Mock uploadImage at the module level instead —
+  // this is correct unit-test scope anyway: the component test should verify
+  // that the component calls uploadImage and uses the returned URL to insert
+  // an image node, not re-test the HTTP layer.
+  const uploadSpy = vi.spyOn(imagesApi, 'uploadImage')
+    .mockResolvedValue({ id: 'img1', url: 'http://localhost:4000/api/images/img1' });
+
   const { result } = renderHook(() => useTestEditor());
   const editor = result.current;
   const user = userEvent.setup();
@@ -183,6 +189,9 @@ test('insert image uploads the file and inserts an image node', async () => {
     const img = editor.getJSON().content.find((n) => n.type === 'image');
     expect(img?.attrs.src).toBe('http://localhost:4000/api/images/img1');
   });
+
+  expect(uploadSpy).toHaveBeenCalledWith(file);
+  uploadSpy.mockRestore();
 });
 
 test('align-image buttons appear only when an image is selected', async () => {
