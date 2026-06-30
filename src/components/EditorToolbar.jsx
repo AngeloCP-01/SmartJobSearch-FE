@@ -2,9 +2,11 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, List, ListOrdered, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight, Undo2, Redo2,
-  Highlighter, Table as TableIcon, ListChecks, Search,
+  Highlighter, Table as TableIcon, ListChecks, Search, Image as ImageIcon,
 } from 'lucide-react';
+import { useRef } from 'react';
 import { FONTS, FONT_SIZES, LINE_HEIGHTS, DEFAULT_TEXT_COLOR, DEFAULT_HIGHLIGHT } from './editorConstants';
+import { uploadImage } from '../api/images';
 
 function Btn({ label, active, disabled, onClick, children }) {
   return (
@@ -46,6 +48,19 @@ export default function EditorToolbar({ editor, onToggleSearch }) {
     if (value) chain().setLineHeight(value).run();
     else chain().unsetLineHeight().run();
   };
+  const fileRef = useRef(null);
+  const onImageFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const { url } = await uploadImage(file);
+      chain().setImage({ src: url }).run();
+    } catch {
+      window.alert('Could not upload the image.');
+    }
+  };
+
   const currentColor = editor.getAttributes('textStyle').color || DEFAULT_TEXT_COLOR;
   const currentHighlight = editor.getAttributes('highlight').color || DEFAULT_HIGHLIGHT;
 
@@ -130,6 +145,17 @@ export default function EditorToolbar({ editor, onToggleSearch }) {
       <Btn label="Remove highlight" onClick={() => chain().unsetHighlight().run()}><Highlighter size={16} className="opacity-40" /></Btn>
       <span className="mx-1 h-5 w-px bg-slate-200" />
       <Btn label="Insert table" onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><TableIcon size={16} /></Btn>
+      <label className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" title="Insert image">
+        <ImageIcon size={16} aria-hidden="true" />
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Insert image" className="sr-only" onChange={onImageFile} />
+      </label>
+      {editor.isActive('image') && (
+        <>
+          <Btn label="Align image left" active={editor.isActive('image', { align: 'left' })} onClick={() => chain().setImageAlign('left').run()}><AlignLeft size={16} /></Btn>
+          <Btn label="Align image center" active={editor.isActive('image', { align: 'center' })} onClick={() => chain().setImageAlign('center').run()}><AlignCenter size={16} /></Btn>
+          <Btn label="Align image right" active={editor.isActive('image', { align: 'right' })} onClick={() => chain().setImageAlign('right').run()}><AlignRight size={16} /></Btn>
+        </>
+      )}
       <Btn label="Find and replace" onClick={() => onToggleSearch?.()}><Search size={16} /></Btn>
       {editor.isActive('table') && (
         <>

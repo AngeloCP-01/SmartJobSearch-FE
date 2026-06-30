@@ -1,4 +1,4 @@
-import { render, screen, cleanup, act, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, act, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -15,6 +15,8 @@ import TaskItem from '@tiptap/extension-task-item';
 import { renderHook } from '@testing-library/react';
 import { FontSize } from './extensions/fontSize';
 import EditorToolbar from './EditorToolbar';
+import { ResizableImage } from './extensions/image';
+import * as imagesApi from '../api/images';
 
 afterEach(cleanup);
 
@@ -33,6 +35,7 @@ function useTestEditor() {
       TableCell,
       TaskList,
       TaskItem.configure({ nested: true }),
+      ResizableImage,
     ],
     content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hello world' }] }] },
   });
@@ -162,4 +165,52 @@ test('checklist button toggles a task list', async () => {
 
   await user.click(screen.getByRole('button', { name: /checklist/i }));
   expect(editor.isActive('taskList')).toBe(true);
+});
+
+test('insert image uploads the file and inserts an image node', async () => {
+  // jsdom's XHR cannot serialize File objects in request bodies (File.text() is
+  // unimplemented), so a real axios POST with FormData+File hangs forever in
+  // this test environment. Mock uploadImage at the module level instead —
+  // this is correct unit-test scope anyway: the component test should verify
+  // that the component calls uploadImage and uses the returned URL to insert
+  // an image node, not re-test the HTTP layer.
+  const uploadSpy = vi.spyOn(imagesApi, 'uploadImage')
+    .mockResolvedValue({ id: 'img1', url: 'http://localhost:4000/api/images/img1' });
+
+  const { result } = renderHook(() => useTestEditor());
+  const editor = result.current;
+  const user = userEvent.setup();
+  render(<EditorToolbar editor={editor} />);
+
+  const file = new File(['png-bytes'], 'sig.png', { type: 'image/png' });
+  await user.upload(screen.getByLabelText('Insert image'), file);
+
+  await waitFor(() => {
+    const img = editor.getJSON().content.find((n) => n.type === 'image');
+    expect(img?.attrs.src).toBe('http://localhost:4000/api/images/img1');
+  });
+
+  expect(uploadSpy).toHaveBeenCalledWith(file);
+  uploadSpy.mockRestore();
+});
+
+test('align-image buttons appear only when an image is selected', async () => {
+  const { result } = renderHook(() => useTestEditor());
+  const editor = result.current;
+  const { rerender } = render(<EditorToolbar editor={editor} />);
+  expect(screen.queryByRole('button', { name: /align image center/i })).toBeNull();
+
+  // selectAll creates an AllSelection where isActive('image') is always false
+  // (TipTap's isNodeActive requires matched range >= selectionRange). Use
+  // setNodeSelection on the image node so isActive('image') returns true.
+  await act(async () => {
+    editor.commands.setImage({ src: 'http://localhost:4000/api/images/img1' });
+    let imagePos = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'image' && imagePos === -1) imagePos = pos;
+    });
+    editor.commands.setNodeSelection(imagePos);
+  });
+  rerender(<EditorToolbar editor={editor} />);
+  expect(screen.getByRole('button', { name: /align image center/i })).toBeInTheDocument();
 });
