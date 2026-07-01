@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
+import ImageOptions from './ImageOptions';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
@@ -125,6 +126,12 @@ export default function DocumentEditor({ content, onChange }) {
           <EditorContent editor={editor} />
         </div>
       </div>
+
+      {editor && (
+        <BubbleMenu editor={editor} shouldShow={({ editor }) => editor.isActive('image')} tippyOptions={{ placement: 'top' }}>
+          <ImageOptions editor={editor} />
+        </BubbleMenu>
+      )}
     </div>
   );
 }
