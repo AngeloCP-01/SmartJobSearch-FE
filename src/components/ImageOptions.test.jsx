@@ -81,3 +81,25 @@ test('buttons expose hover titles', () => {
   render(<ImageOptions editor={editor} />);
   expect(screen.getByRole('button', { name: 'Align image left' })).toHaveAttribute('title', 'Align image left');
 });
+
+test('renders the five wrap-mode buttons and sets the mode', async () => {
+  const editor = makeEditor();
+  const user = userEvent.setup();
+  render(<ImageOptions editor={editor} />);
+  for (const name of ['In line', 'Break text', 'Wrap text', 'In front of text', 'Behind text']) {
+    expect(screen.getByRole('button', { name })).toBeInTheDocument();
+  }
+  await user.click(screen.getByRole('button', { name: 'Behind text' }));
+  expect(imgAttrs(editor).wrap).toBe('behind');
+});
+
+test('hides align buttons for inline/front/behind modes', async () => {
+  const editor = makeEditor();
+  editor.commands.setImageWrap('front');
+  const user = userEvent.setup();
+  render(<ImageOptions editor={editor} />);
+  expect(screen.queryByRole('button', { name: 'Align image left' })).toBeNull();
+  // Switch to a flow mode → align reappears.
+  await user.click(screen.getByRole('button', { name: 'Break text' }));
+  expect(screen.getByRole('button', { name: 'Align image left' })).toBeInTheDocument();
+});
