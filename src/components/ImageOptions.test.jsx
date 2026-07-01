@@ -18,7 +18,14 @@ function makeEditor() {
   editor.commands.setNodeSelection(pos);
   return editor;
 }
-const imgAttrs = (editor) => editor.getJSON().content.find((n) => n.type === 'image').attrs;
+const imgAttrs = (editor) => {
+  let found;
+  editor.state.doc.descendants((n) => {
+    if (n.type.name === 'image') found = n;
+    return !found;
+  });
+  return found.attrs;
+};
 
 test('align buttons set the image align', async () => {
   const editor = makeEditor();
@@ -52,7 +59,12 @@ test('delete removes the image', async () => {
   const user = userEvent.setup();
   render(<ImageOptions editor={editor} />);
   await user.click(screen.getByRole('button', { name: 'Delete image' }));
-  expect(editor.getJSON().content.find((n) => n.type === 'image')).toBeUndefined();
+  let img;
+  editor.state.doc.descendants((n) => {
+    if (n.type.name === 'image') img = n;
+    return !img;
+  });
+  expect(img).toBeUndefined();
 });
 
 test('replace uploads a new file and swaps the src', async () => {

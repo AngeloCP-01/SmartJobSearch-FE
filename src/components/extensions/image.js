@@ -1,9 +1,14 @@
 import Image from '@tiptap/extension-image';
+import { NodeSelection } from '@tiptap/pm/state';
 
 // Image node extended with width + align attributes and a corner drag-resize
 // handle (vanilla NodeView). Inline-resize is verified manually / in e2e
 // (jsdom can't simulate pointer drag); the attribute commands are unit-tested.
 export const ResizableImage = Image.extend({
+  addOptions() {
+    return { ...this.parent?.(), inline: true };
+  },
+
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -22,28 +27,66 @@ export const ResizableImage = Image.extend({
         parseHTML: (el) => el.getAttribute('data-align'),
         renderHTML: (attrs) => (attrs.align ? { 'data-align': attrs.align } : {}),
       },
+      wrap: {
+        default: 'break',
+        parseHTML: (el) => el.getAttribute('data-wrap') || 'break',
+        renderHTML: (attrs) =>
+          attrs.wrap && attrs.wrap !== 'break' ? { 'data-wrap': attrs.wrap } : {},
+      },
+      offsetX: {
+        default: null,
+        parseHTML: (el) => {
+          const v = el.getAttribute('data-offset-x');
+          return v == null ? null : parseFloat(v);
+        },
+        renderHTML: (attrs) =>
+          attrs.offsetX != null ? { 'data-offset-x': attrs.offsetX } : {},
+      },
+      offsetY: {
+        default: null,
+        parseHTML: (el) => {
+          const v = el.getAttribute('data-offset-y');
+          return v == null ? null : parseFloat(v);
+        },
+        renderHTML: (attrs) =>
+          attrs.offsetY != null ? { 'data-offset-y': attrs.offsetY } : {},
+      },
     };
   },
 
   addCommands() {
+    // Delegates to the built-in updateAttributes (so ranges / AllSelection
+    // keep working as before), then restores a NodeSelection on the image.
+    // Now that the image is inline, ProseMirror's default NodeSelection#map
+    // collapses to a TextSelection right after any attribute edit (its
+    // parent paragraph has inline content, so Selection.near never re-picks
+    // the node) — without this, a second toolbar action right after the
+    // first would silently find no image to update.
+    const updateImageAttrs = (attrs) => ({ state, tr, dispatch, commands }) => {
+      const { selection } = state;
+      const wasNodeSelected =
+        selection instanceof NodeSelection && selection.node.type.name === this.name;
+      const pos = wasNodeSelected ? selection.from : null;
+      const applied = commands.updateAttributes(this.name, attrs);
+      if (applied && pos != null && dispatch) {
+        tr.setSelection(NodeSelection.create(tr.doc, pos));
+      }
+      return applied;
+    };
+
     return {
       ...this.parent?.(),
-      setImageWidth:
-        (width) =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { width }),
-      setImageAlign:
-        (align) =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { align }),
-      setImageSize:
-        ({ width, height }) =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { width, height }),
-      resetImageSize:
-        () =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { width: null, height: null }),
+      setImageWidth: (width) => updateImageAttrs({ width }),
+      setImageAlign: (align) => updateImageAttrs({ align }),
+      setImageSize: ({ width, height }) => updateImageAttrs({ width, height }),
+      resetImageSize: () => updateImageAttrs({ width: null, height: null }),
+      setImageWrap: (wrap) =>
+        updateImageAttrs(
+          wrap === 'front' || wrap === 'behind'
+            ? { wrap }
+            : { wrap, offsetX: null, offsetY: null },
+        ),
+      setImagePosition: ({ offsetX, offsetY }) => updateImageAttrs({ offsetX, offsetY }),
     };
   },
 
@@ -53,6 +96,17 @@ export const ResizableImage = Image.extend({
       const dom = document.createElement('div');
       dom.className = 'tiptap-image';
       if (current.attrs.align) dom.setAttribute('data-align', current.attrs.align);
+      const applyWrap = (attrs) => {
+        dom.dataset.wrap = attrs.wrap || 'break';
+        if (attrs.wrap === 'front' || attrs.wrap === 'behind') {
+          dom.style.left = attrs.offsetX != null ? `${attrs.offsetX}px` : '';
+          dom.style.top = attrs.offsetY != null ? `${attrs.offsetY}px` : '';
+        } else {
+          dom.style.left = '';
+          dom.style.top = '';
+        }
+      };
+      applyWrap(current.attrs);
 
       const img = document.createElement('img');
       img.src = current.attrs.src;
@@ -173,6 +227,7 @@ export const ResizableImage = Image.extend({
           dom.style.width = updated.attrs.width || '';
           dom.style.height = updated.attrs.height || '';
           img.src = updated.attrs.src;
+          applyWrap(updated.attrs);
           return true;
         },
         selectNode() {
