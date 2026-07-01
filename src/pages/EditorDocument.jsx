@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Printer, Check, Loader2, TriangleAlert, Save } from 'lucide-react';
 import { getAuthoredDocument, updateAuthoredDocument } from '../api/authoredDocuments';
 import { useAutosave } from '../hooks/useAutosave';
@@ -19,9 +19,19 @@ function EditorDocumentForm({ id, initialDoc }) {
   // `dirty` = there are edits not yet sent to a save. Drives the status text and
   // the Save button, and lets us flush on unmount so leaving never loses edits.
   const [dirty, setDirty] = useState(false);
+  const qc = useQueryClient();
+
+  // Keep the React Query caches in sync with what we just saved, so navigating
+  // away and reopening shows the fresh doc (not the stale cached copy) and the
+  // list reflects the new title.
+  const syncCaches = (saved) => {
+    qc.setQueryData(['authored-document', id], saved);
+    qc.invalidateQueries({ queryKey: ['authored-documents'] });
+  };
 
   const save = useMutation({
     mutationFn: (body) => updateAuthoredDocument(id, body),
+    onSuccess: syncCaches,
     onError: () => setDirty(true), // failed save → still unsaved
   });
 
@@ -55,7 +65,10 @@ function EditorDocumentForm({ id, initialDoc }) {
   latest.current = { docValue, dirty };
   useEffect(() => () => {
     const { docValue: v, dirty: d } = latest.current;
-    if (d && v.title.trim() !== '') updateAuthoredDocument(id, v).catch(() => {});
+    if (d && v.title.trim() !== '') {
+      updateAuthoredDocument(id, v).then(syncCaches).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const status = save.isError
