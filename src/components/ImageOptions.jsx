@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { AlignLeft, AlignCenter, AlignRight, RefreshCw, Trash2 } from 'lucide-react';
 import { uploadImage } from '../api/images';
 
@@ -24,7 +23,6 @@ function IconBtn({ label, active, onClick, children }) {
 }
 
 export default function ImageOptions({ editor }) {
-  const fileRef = useRef(null);
   if (!editor) return null;
   const chain = () => editor.chain().focus();
   const align = editor.getAttributes('image').align;
@@ -54,7 +52,7 @@ export default function ImageOptions({ editor }) {
           type="button"
           aria-label={s.title}
           title={s.title}
-          aria-pressed={width === s.value || undefined}
+          aria-pressed={width === s.value}
           onClick={() => chain().setImageWidth(s.value).run()}
           className={`h-8 rounded-md px-2 text-xs font-medium text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${width === s.value ? 'bg-sky-100 text-sky-700' : ''}`}
         >
@@ -64,7 +62,7 @@ export default function ImageOptions({ editor }) {
       <span className="mx-0.5 h-5 w-px bg-slate-200" />
       <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 text-xs font-medium text-slate-600 hover:bg-slate-100" title="Replace image">
         <RefreshCw size={14} aria-hidden="true" /> Replace
-        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Replace image" className="sr-only" onChange={onReplace} />
+        <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Replace image" className="sr-only" onChange={onReplace} />
       </label>
       <IconBtn label="Delete image" onClick={() => chain().deleteSelection().run()}><Trash2 size={16} /></IconBtn>
     </div>

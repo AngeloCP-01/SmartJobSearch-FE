@@ -128,7 +128,7 @@ export default function DocumentEditor({ content, onChange }) {
       </div>
 
       {editor && (
-        <BubbleMenu editor={editor} shouldShow={({ editor }) => editor.isActive('image')} tippyOptions={{ placement: 'top' }}>
+        <BubbleMenu editor={editor} shouldShow={({ editor: ed }) => ed.isActive('image')} tippyOptions={{ placement: 'top' }}>
           <ImageOptions editor={editor} />
         </BubbleMenu>
       )}
