@@ -43,7 +43,10 @@ export const ResizableImage = Image.extend({
       const img = document.createElement('img');
       img.src = node.attrs.src;
       if (node.attrs.alt) img.alt = node.attrs.alt;
-      if (node.attrs.width) img.style.width = node.attrs.width;
+      if (node.attrs.width) {
+        dom.style.width = node.attrs.width;
+        img.style.width = '100%';
+      }
       dom.appendChild(img);
 
       const handle = document.createElement('span');
@@ -55,7 +58,8 @@ export const ResizableImage = Image.extend({
       let startW = 0;
       const onMove = (e) => {
         const newW = Math.max(40, startW + (e.clientX - startX));
-        img.style.width = `${newW}px`;
+        dom.style.width = `${newW}px`;
+        img.style.width = '100%';
       };
       const onUp = () => {
         window.removeEventListener('pointermove', onMove);
@@ -66,7 +70,7 @@ export const ResizableImage = Image.extend({
             .chain()
             .command(({ tr, state }) => {
               const currentAttrs = state.doc.nodeAt(pos)?.attrs ?? node.attrs;
-              tr.setNodeMarkup(pos, undefined, { ...currentAttrs, width: img.style.width });
+              tr.setNodeMarkup(pos, undefined, { ...currentAttrs, width: dom.style.width });
               return true;
             })
             .run();
@@ -75,7 +79,7 @@ export const ResizableImage = Image.extend({
       handle.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         startX = e.clientX;
-        startW = img.getBoundingClientRect().width || img.naturalWidth || 200;
+        startW = dom.getBoundingClientRect().width || img.naturalWidth || 200;
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
       });
