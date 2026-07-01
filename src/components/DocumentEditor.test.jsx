@@ -2,6 +2,15 @@ import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DocumentEditor from './DocumentEditor';
 
+// TipTap's BubbleMenu pulls in tippy.js, which crashes under Vitest/jsdom
+// (`tippy is not a function` — an ESM/CJS interop issue). The bubble menu's
+// floating behavior is verified manually / in e2e; here we stub it to render
+// nothing so the rest of DocumentEditor can be tested. Other exports are real.
+vi.mock('@tiptap/react', async (importOriginal) => ({
+  ...(await importOriginal()),
+  BubbleMenu: () => null,
+}));
+
 test('renders the page-setup selects defaulting to Letter / Normal', async () => {
   render(<DocumentEditor content={{ type: 'doc', content: [{ type: 'paragraph' }] }} onChange={() => {}} />);
   // useEditor mounts asynchronously; wait for the controls.

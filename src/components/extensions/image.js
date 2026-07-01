@@ -12,6 +12,11 @@ export const ResizableImage = Image.extend({
         parseHTML: (el) => el.style.width || el.getAttribute('width') || null,
         renderHTML: (attrs) => (attrs.width ? { style: `width: ${attrs.width}` } : {}),
       },
+      height: {
+        default: null,
+        parseHTML: (el) => el.style.height || el.getAttribute('height') || null,
+        renderHTML: (attrs) => (attrs.height ? { style: `height: ${attrs.height}` } : {}),
+      },
       align: {
         default: null,
         parseHTML: (el) => el.getAttribute('data-align'),
@@ -31,61 +36,153 @@ export const ResizableImage = Image.extend({
         (align) =>
         ({ commands }) =>
           commands.updateAttributes(this.name, { align }),
+      setImageSize:
+        ({ width, height }) =>
+        ({ commands }) =>
+          commands.updateAttributes(this.name, { width, height }),
+      resetImageSize:
+        () =>
+        ({ commands }) =>
+          commands.updateAttributes(this.name, { width: null, height: null }),
     };
   },
 
   addNodeView() {
     return ({ node, editor, getPos }) => {
+      let current = node;
       const dom = document.createElement('div');
       dom.className = 'tiptap-image';
-      if (node.attrs.align) dom.setAttribute('data-align', node.attrs.align);
+      if (current.attrs.align) dom.setAttribute('data-align', current.attrs.align);
 
       const img = document.createElement('img');
-      img.src = node.attrs.src;
-      if (node.attrs.alt) img.alt = node.attrs.alt;
-      if (node.attrs.width) img.style.width = node.attrs.width;
+      img.src = current.attrs.src;
+      if (current.attrs.alt) img.alt = current.attrs.alt;
+      dom.style.width = current.attrs.width || '';
+      dom.style.height = current.attrs.height || '';
+      img.style.width = '100%';
+      img.style.height = '100%';
       dom.appendChild(img);
 
-      const handle = document.createElement('span');
-      handle.className = 'tiptap-image__handle';
-      handle.contentEditable = 'false';
-      dom.appendChild(handle);
+      const badge = document.createElement('span');
+      badge.className = 'tiptap-image__dim';
+      badge.contentEditable = 'false';
 
-      let startX = 0;
-      let startW = 0;
-      const onMove = (e) => {
-        const newW = Math.max(40, startW + (e.clientX - startX));
-        img.style.width = `${newW}px`;
-      };
-      const onUp = () => {
-        window.removeEventListener('pointermove', onMove);
-        window.removeEventListener('pointerup', onUp);
-        if (typeof getPos === 'function') {
-          const pos = getPos();
-          editor
-            .chain()
-            .command(({ tr, state }) => {
-              const currentAttrs = state.doc.nodeAt(pos)?.attrs ?? node.attrs;
-              tr.setNodeMarkup(pos, undefined, { ...currentAttrs, width: img.style.width });
-              return true;
-            })
-            .run();
-        }
-      };
-      handle.addEventListener('pointerdown', (e) => {
+      const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+      const handleEls = HANDLES.map((h) => {
+        const el = document.createElement('span');
+        el.className = 'tiptap-image__handle';
+        el.dataset.handle = h;
+        el.contentEditable = 'false';
+        dom.appendChild(el);
+        return el;
+      });
+
+      let cleanup = null;
+      const startDrag = (handle, e) => {
         e.preventDefault();
-        startX = e.clientX;
-        startW = img.getBoundingClientRect().width || img.naturalWidth || 200;
+        e.stopPropagation();
+        const rect = dom.getBoundingClientRect();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startW = rect.width;
+        const startH = rect.height;
+        const ratio =
+          img.naturalWidth && img.naturalHeight
+            ? img.naturalWidth / img.naturalHeight
+            : startW / startH || 1;
+        const isCorner = handle.length === 2;
+        const west = handle.includes('w');
+        const north = handle.includes('n');
+        const changesW = isCorner || handle === 'e' || handle === 'w';
+        const changesH = isCorner || handle === 'n' || handle === 's';
+        const maxW = dom.parentElement?.clientWidth || Infinity;
+
+        document.body.appendChild(badge);
+
+        const onMove = (ev) => {
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          let w = startW;
+          let h = startH;
+          if (isCorner) {
+            const dwFromX = west ? -dx : dx;
+            const dhFromY = north ? -dy : dy;
+            // Aspect-locked: follow whichever axis the pointer moved further along.
+            const delta =
+              Math.abs(dwFromX) > Math.abs(dhFromY) ? dwFromX : dhFromY * ratio;
+            w = Math.max(40, Math.min(maxW, startW + delta));
+            h = Math.max(40, w / ratio);
+          } else if (changesW) {
+            w = Math.max(40, Math.min(maxW, startW + (west ? -dx : dx)));
+          } else if (changesH) {
+            h = Math.max(40, startH + (north ? -dy : dy));
+          }
+          dom.style.width = `${Math.round(w)}px`;
+          if (changesH || isCorner) dom.style.height = `${Math.round(h)}px`;
+          // Keep the edge opposite the grabbed handle visually anchored so the
+          // grabbed edge tracks the cursor (an in-flow box only grows right/bottom).
+          const tx = west ? -(w - startW) : 0;
+          const ty = north ? -(h - startH) : 0;
+          dom.style.transform = tx || ty ? `translate(${tx}px, ${ty}px)` : '';
+          badge.textContent = `${Math.round(w)} × ${Math.round(h)}`;
+          badge.style.left = `${ev.clientX + 12}px`;
+          badge.style.top = `${ev.clientY + 12}px`;
+        };
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          badge.remove();
+          dom.style.transform = '';
+          cleanup = null;
+          if (typeof getPos === 'function') {
+            const pos = getPos();
+            const width = dom.style.width || null;
+            const height = dom.style.height || null;
+            editor
+              .chain()
+              .command(({ tr, state }) => {
+                const attrs = state.doc.nodeAt(pos)?.attrs ?? current.attrs;
+                tr.setNodeMarkup(pos, undefined, { ...attrs, width, height });
+                return true;
+              })
+              .run();
+          }
+        };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+        // Clean up drag listeners + transient styles if destroyed mid-drag.
+        cleanup = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          badge.remove();
+          dom.style.transform = '';
+        };
+      };
+
+      handleEls.forEach((el) => {
+        el.addEventListener('pointerdown', (e) => startDrag(el.dataset.handle, e));
       });
 
       return {
         dom,
-        // Clean up drag listeners if the node is destroyed mid-drag.
+        update(updated) {
+          if (updated.type.name !== current.type.name) return false;
+          current = updated;
+          if (updated.attrs.align) dom.setAttribute('data-align', updated.attrs.align);
+          else dom.removeAttribute('data-align');
+          dom.style.width = updated.attrs.width || '';
+          dom.style.height = updated.attrs.height || '';
+          img.src = updated.attrs.src;
+          return true;
+        },
+        selectNode() {
+          dom.dataset.selected = 'true';
+        },
+        deselectNode() {
+          delete dom.dataset.selected;
+        },
         destroy() {
-          window.removeEventListener('pointermove', onMove);
-          window.removeEventListener('pointerup', onUp);
+          if (cleanup) cleanup();
         },
       };
     };

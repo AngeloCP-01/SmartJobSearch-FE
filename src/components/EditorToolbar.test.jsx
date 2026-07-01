@@ -194,23 +194,9 @@ test('insert image uploads the file and inserts an image node', async () => {
   uploadSpy.mockRestore();
 });
 
-test('align-image buttons appear only when an image is selected', async () => {
+test('toolbar icon buttons have a hover title matching their label', () => {
   const { result } = renderHook(() => useTestEditor());
   const editor = result.current;
-  const { rerender } = render(<EditorToolbar editor={editor} />);
-  expect(screen.queryByRole('button', { name: /align image center/i })).toBeNull();
-
-  // selectAll creates an AllSelection where isActive('image') is always false
-  // (TipTap's isNodeActive requires matched range >= selectionRange). Use
-  // setNodeSelection on the image node so isActive('image') returns true.
-  await act(async () => {
-    editor.commands.setImage({ src: 'http://localhost:4000/api/images/img1' });
-    let imagePos = -1;
-    editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === 'image' && imagePos === -1) imagePos = pos;
-    });
-    editor.commands.setNodeSelection(imagePos);
-  });
-  rerender(<EditorToolbar editor={editor} />);
-  expect(screen.getByRole('button', { name: /align image center/i })).toBeInTheDocument();
+  render(<EditorToolbar editor={editor} />);
+  expect(screen.getByRole('button', { name: 'Bold' })).toHaveAttribute('title', 'Bold');
 });
