@@ -44,7 +44,27 @@ body {
 .tiptap-image[data-align="right"] { margin-left: auto; }
 .tiptap-image[data-align="left"] { margin-right: auto; }
 .tiptap-image img { display: block; width: 100%; height: auto; }
-.tiptap-image__handle { position: absolute; right: -5px; bottom: -5px; width: 12px; height: 12px; background: #0284c7; border: 1px solid #fff; border-radius: 2px; cursor: nwse-resize; }
+.tiptap-image[data-selected="true"] { outline: 2px solid #0284c7; outline-offset: 2px; }
+
+.tiptap-image__handle {
+  position: absolute; display: none; width: 10px; height: 10px;
+  background: #fff; border: 1.5px solid #0284c7; border-radius: 2px; z-index: 2;
+}
+.tiptap-image[data-selected="true"] .tiptap-image__handle { display: block; }
+.tiptap-image__handle[data-handle="nw"] { top: -5px; left: -5px; cursor: nwse-resize; }
+.tiptap-image__handle[data-handle="n"]  { top: -5px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+.tiptap-image__handle[data-handle="ne"] { top: -5px; right: -5px; cursor: nesw-resize; }
+.tiptap-image__handle[data-handle="e"]  { top: 50%; right: -5px; transform: translateY(-50%); cursor: ew-resize; }
+.tiptap-image__handle[data-handle="se"] { bottom: -5px; right: -5px; cursor: nwse-resize; }
+.tiptap-image__handle[data-handle="s"]  { bottom: -5px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+.tiptap-image__handle[data-handle="sw"] { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.tiptap-image__handle[data-handle="w"]  { top: 50%; left: -5px; transform: translateY(-50%); cursor: ew-resize; }
+
+.tiptap-image__dim {
+  position: fixed; z-index: 50; background: #1e293b; color: #fff;
+  font-size: 11px; line-height: 1; padding: 3px 6px; border-radius: 4px;
+  pointer-events: none; white-space: nowrap;
+}
 
 /* Indeterminate sweep for the global top progress bar (TopProgressBar). */
 @keyframes indeterminate {
@@ -63,5 +83,7 @@ body {
   .editor-sheet .tiptap { min-height: 0 !important; }
   .editor-sheet table, .editor-sheet th, .editor-sheet td { border: 1px solid #94a3b8 !important; }
   .editor-sheet .tiptap-image__handle { display: none !important; }
+  .tiptap-image[data-selected="true"] { outline: none !important; }
+  .tiptap-image__dim { display: none !important; }
   .image-options, [data-tippy-root] { display: none !important; }
 }
