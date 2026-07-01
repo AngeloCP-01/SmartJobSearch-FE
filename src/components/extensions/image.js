@@ -12,6 +12,11 @@ export const ResizableImage = Image.extend({
         parseHTML: (el) => el.style.width || el.getAttribute('width') || null,
         renderHTML: (attrs) => (attrs.width ? { style: `width: ${attrs.width}` } : {}),
       },
+      height: {
+        default: null,
+        parseHTML: (el) => el.style.height || el.getAttribute('height') || null,
+        renderHTML: (attrs) => (attrs.height ? { style: `height: ${attrs.height}` } : {}),
+      },
       align: {
         default: null,
         parseHTML: (el) => el.getAttribute('data-align'),
@@ -31,6 +36,14 @@ export const ResizableImage = Image.extend({
         (align) =>
         ({ commands }) =>
           commands.updateAttributes(this.name, { align }),
+      setImageSize:
+        ({ width, height }) =>
+        ({ commands }) =>
+          commands.updateAttributes(this.name, { width, height }),
+      resetImageSize:
+        () =>
+        ({ commands }) =>
+          commands.updateAttributes(this.name, { width: null, height: null }),
     };
   },
 
