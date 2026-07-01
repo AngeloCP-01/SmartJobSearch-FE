@@ -20,6 +20,7 @@ import { FontSize } from './extensions/fontSize';
 import { LineHeight } from './extensions/lineHeight';
 import { PageDocument } from './extensions/pageDocument';
 import { ResizableImage } from './extensions/image';
+import { migrateImageContent } from './extensions/imageContentMigration';
 import { FindReplace } from './extensions/findReplace';
 import FindReplacePanel from './FindReplacePanel';
 import { PAGE_SIZES, MARGINS, PAGE_WIDTH_CLASS, MARGIN_PAD_CLASS } from './editorConstants';
@@ -62,7 +63,7 @@ export default function DocumentEditor({ content, onChange }) {
       ResizableImage,
       FindReplace,
     ],
-    content: content || { type: 'doc', content: [{ type: 'paragraph' }] },
+    content: migrateImageContent(content) || { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
       attributes: { class: 'tiptap min-h-[9in] focus:outline-none prose max-w-none' },
     },
