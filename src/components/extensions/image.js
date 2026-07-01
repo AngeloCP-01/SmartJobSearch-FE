@@ -105,8 +105,12 @@ export const ResizableImage = Image.extend({
           let w = startW;
           let h = startH;
           if (isCorner) {
-            w = Math.max(40, startW + (west ? -dx : dx));
-            if (w > maxW) w = maxW;
+            const dwFromX = west ? -dx : dx;
+            const dhFromY = north ? -dy : dy;
+            // Aspect-locked: follow whichever axis the pointer moved further along.
+            const delta =
+              Math.abs(dwFromX) > Math.abs(dhFromY) ? dwFromX : dhFromY * ratio;
+            w = Math.max(40, Math.min(maxW, startW + delta));
             h = Math.max(40, w / ratio);
           } else if (changesW) {
             w = Math.max(40, Math.min(maxW, startW + (west ? -dx : dx)));
@@ -115,8 +119,12 @@ export const ResizableImage = Image.extend({
           }
           dom.style.width = `${Math.round(w)}px`;
           if (changesH || isCorner) dom.style.height = `${Math.round(h)}px`;
-          const shown = dom.getBoundingClientRect();
-          badge.textContent = `${Math.round(shown.width)} × ${Math.round(shown.height)}`;
+          // Keep the edge opposite the grabbed handle visually anchored so the
+          // grabbed edge tracks the cursor (an in-flow box only grows right/bottom).
+          const tx = west ? -(w - startW) : 0;
+          const ty = north ? -(h - startH) : 0;
+          dom.style.transform = tx || ty ? `translate(${tx}px, ${ty}px)` : '';
+          badge.textContent = `${Math.round(w)} × ${Math.round(h)}`;
           badge.style.left = `${ev.clientX + 12}px`;
           badge.style.top = `${ev.clientY + 12}px`;
         };
@@ -124,6 +132,7 @@ export const ResizableImage = Image.extend({
           window.removeEventListener('pointermove', onMove);
           window.removeEventListener('pointerup', onUp);
           badge.remove();
+          dom.style.transform = '';
           cleanup = null;
           if (typeof getPos === 'function') {
             const pos = getPos();
@@ -141,10 +150,12 @@ export const ResizableImage = Image.extend({
         };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
+        // Clean up drag listeners + transient styles if destroyed mid-drag.
         cleanup = () => {
           window.removeEventListener('pointermove', onMove);
           window.removeEventListener('pointerup', onUp);
           badge.remove();
+          dom.style.transform = '';
         };
       };
 
