@@ -13,6 +13,7 @@ function Btn({ label, active, disabled, onClick, children }) {
     <button
       type="button"
       aria-label={label}
+      title={label}
       aria-pressed={active ?? undefined}
       disabled={disabled}
       onClick={onClick}
@@ -149,14 +150,7 @@ export default function EditorToolbar({ editor, onToggleSearch }) {
         <ImageIcon size={16} aria-hidden="true" />
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Insert image" className="sr-only" onChange={onImageFile} />
       </label>
-      {editor.isActive('image') && (
-        <>
-          <Btn label="Align image left" active={editor.isActive('image', { align: 'left' })} onClick={() => chain().setImageAlign('left').run()}><AlignLeft size={16} /></Btn>
-          <Btn label="Align image center" active={editor.isActive('image', { align: 'center' })} onClick={() => chain().setImageAlign('center').run()}><AlignCenter size={16} /></Btn>
-          <Btn label="Align image right" active={editor.isActive('image', { align: 'right' })} onClick={() => chain().setImageAlign('right').run()}><AlignRight size={16} /></Btn>
-        </>
-      )}
-      <Btn label="Find and replace" onClick={() => onToggleSearch?.()}><Search size={16} /></Btn>
+<Btn label="Find and replace" onClick={() => onToggleSearch?.()}><Search size={16} /></Btn>
       {editor.isActive('table') && (
         <>
           <button type="button" aria-label="Add column" onClick={() => chain().addColumnAfter().run()} className="h-8 rounded-md px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Col+</button>
