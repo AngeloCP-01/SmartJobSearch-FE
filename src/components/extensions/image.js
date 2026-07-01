@@ -132,6 +132,55 @@ export const ResizableImage = Image.extend({
       });
 
       let cleanup = null;
+      let moveCleanup = null;
+      const startMove = (e) => {
+        if (current.attrs.wrap !== 'front' && current.attrs.wrap !== 'behind') return;
+        e.preventDefault();
+        if (typeof getPos === 'function') editor.commands.setNodeSelection(getPos());
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startLeft = parseFloat(dom.style.left) || 0;
+        const startTop = parseFloat(dom.style.top) || 0;
+        const sheet = dom.closest('.editor-sheet');
+        const onMove = (ev) => {
+          let nx = startLeft + (ev.clientX - startX);
+          let ny = startTop + (ev.clientY - startY);
+          if (sheet) {
+            const maxX = Math.max(0, sheet.clientWidth - dom.offsetWidth);
+            const maxY = Math.max(0, sheet.clientHeight - dom.offsetHeight);
+            nx = Math.max(0, Math.min(nx, maxX));
+            ny = Math.max(0, Math.min(ny, maxY));
+          }
+          dom.style.left = `${Math.round(nx)}px`;
+          dom.style.top = `${Math.round(ny)}px`;
+        };
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          moveCleanup = null;
+          if (typeof getPos === 'function') {
+            const pos = getPos();
+            const offsetX = parseFloat(dom.style.left) || 0;
+            const offsetY = parseFloat(dom.style.top) || 0;
+            editor
+              .chain()
+              .command(({ tr, state }) => {
+                const attrs = state.doc.nodeAt(pos)?.attrs ?? current.attrs;
+                tr.setNodeMarkup(pos, undefined, { ...attrs, offsetX, offsetY });
+                tr.setSelection(NodeSelection.create(tr.doc, pos));
+                return true;
+              })
+              .run();
+          }
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        moveCleanup = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+        };
+      };
+      dom.addEventListener('pointerdown', startMove);
       const startDrag = (handle, e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -197,6 +246,7 @@ export const ResizableImage = Image.extend({
               .command(({ tr, state }) => {
                 const attrs = state.doc.nodeAt(pos)?.attrs ?? current.attrs;
                 tr.setNodeMarkup(pos, undefined, { ...attrs, width, height });
+                tr.setSelection(NodeSelection.create(tr.doc, pos));
                 return true;
               })
               .run();
@@ -238,6 +288,7 @@ export const ResizableImage = Image.extend({
         },
         destroy() {
           if (cleanup) cleanup();
+          if (moveCleanup) moveCleanup();
         },
       };
     };

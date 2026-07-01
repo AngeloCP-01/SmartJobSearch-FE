@@ -52,6 +52,7 @@ body {
 .tiptap-image[data-wrap="wrap-right"] { float: right; margin: 0 0 0.5em 1em; }
 .tiptap-image[data-wrap="front"] { position: absolute; z-index: 2; }
 .tiptap-image[data-wrap="behind"] { position: absolute; z-index: -1; }
+.tiptap-image[data-wrap="front"], .tiptap-image[data-wrap="behind"] { cursor: move; }
 
 .tiptap-image__handle {
   position: absolute; display: none; width: 10px; height: 10px;
