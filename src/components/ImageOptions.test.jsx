@@ -28,12 +28,23 @@ test('align buttons set the image align', async () => {
   expect(imgAttrs(editor).align).toBe('center');
 });
 
-test('size presets set the image width', async () => {
+test('reset size clears the image width and height', async () => {
   const editor = makeEditor();
+  editor.commands.setImageSize({ width: '250px', height: '160px' });
   const user = userEvent.setup();
   render(<ImageOptions editor={editor} />);
-  await user.click(screen.getByRole('button', { name: /medium/i }));
-  expect(imgAttrs(editor).width).toBe('50%');
+  await user.click(screen.getByRole('button', { name: /reset size/i }));
+  const attrs = imgAttrs(editor);
+  expect(attrs.width).toBeNull();
+  expect(attrs.height).toBeNull();
+});
+
+test('no size preset buttons are rendered', () => {
+  const editor = makeEditor();
+  render(<ImageOptions editor={editor} />);
+  expect(screen.queryByRole('button', { name: /small/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /medium/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /full/i })).toBeNull();
 });
 
 test('delete removes the image', async () => {
