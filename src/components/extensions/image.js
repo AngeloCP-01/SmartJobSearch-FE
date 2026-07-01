@@ -139,10 +139,12 @@ export const ResizableImage = Image.extend({
         if (typeof getPos === 'function') editor.commands.setNodeSelection(getPos());
         const startX = e.clientX;
         const startY = e.clientY;
-        const startLeft = parseFloat(dom.style.left) || 0;
-        const startTop = parseFloat(dom.style.top) || 0;
+        const startLeft = dom.style.left ? parseFloat(dom.style.left) : dom.offsetLeft;
+        const startTop = dom.style.top ? parseFloat(dom.style.top) : dom.offsetTop;
         const sheet = dom.closest('.editor-sheet');
+        let moved = false;
         const onMove = (ev) => {
+          moved = true;
           let nx = startLeft + (ev.clientX - startX);
           let ny = startTop + (ev.clientY - startY);
           if (sheet) {
@@ -158,7 +160,7 @@ export const ResizableImage = Image.extend({
           window.removeEventListener('pointermove', onMove);
           window.removeEventListener('pointerup', onUp);
           moveCleanup = null;
-          if (typeof getPos === 'function') {
+          if (moved && typeof getPos === 'function') {
             const pos = getPos();
             const offsetX = parseFloat(dom.style.left) || 0;
             const offsetY = parseFloat(dom.style.top) || 0;
