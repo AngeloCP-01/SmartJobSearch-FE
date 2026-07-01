@@ -46,6 +46,13 @@ body {
 .tiptap-image img { display: block; width: 100%; height: auto; }
 .tiptap-image[data-selected="true"] { outline: 2px solid #0284c7; outline-offset: 2px; }
 
+.editor-sheet { position: relative; }
+.tiptap-image[data-wrap="inline"] { display: inline-block; vertical-align: bottom; }
+.tiptap-image[data-wrap="wrap-left"] { float: left; margin: 0 1em 0.5em 0; }
+.tiptap-image[data-wrap="wrap-right"] { float: right; margin: 0 0 0.5em 1em; }
+.tiptap-image[data-wrap="front"] { position: absolute; z-index: 2; }
+.tiptap-image[data-wrap="behind"] { position: absolute; z-index: -1; }
+
 .tiptap-image__handle {
   position: absolute; display: none; width: 10px; height: 10px;
   background: #fff; border: 1.5px solid #0284c7; border-radius: 2px; z-index: 2;
