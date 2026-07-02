@@ -1,5 +1,6 @@
 import Image from '@tiptap/extension-image';
 import { NodeSelection } from '@tiptap/pm/state';
+import { sideForX, repositionImageNode } from './imageReposition';
 
 // Image node extended with width + align attributes and a corner drag-resize
 // handle (vanilla NodeView). Inline-resize is verified manually / in e2e
@@ -182,7 +183,67 @@ export const ResizableImage = Image.extend({
           window.removeEventListener('pointerup', onUp);
         };
       };
-      dom.addEventListener('pointerdown', startMove);
+      let repoCleanup = null;
+      let dropCaret = null;
+      const removeCaret = () => {
+        if (dropCaret) { dropCaret.remove(); dropCaret = null; }
+      };
+      const startReposition = (e) => {
+        e.preventDefault();
+        if (typeof getPos === 'function') editor.commands.setNodeSelection(getPos());
+        const view = editor.view;
+        const sheet = dom.closest('.editor-sheet');
+        let moved = false;
+        let targetPos = null;
+        const onMove = (ev) => {
+          moved = true;
+          const at = view.posAtCoords({ left: ev.clientX, top: ev.clientY });
+          if (!at) return;
+          targetPos = at.pos;
+          const coords = view.coordsAtPos(targetPos);
+          if (!dropCaret) {
+            dropCaret = document.createElement('div');
+            dropCaret.className = 'tiptap-image__drop-caret';
+            document.body.appendChild(dropCaret);
+          }
+          dropCaret.style.left = `${coords.left}px`;
+          dropCaret.style.top = `${coords.top}px`;
+          dropCaret.style.height = `${Math.max(4, coords.bottom - coords.top)}px`;
+        };
+        const onUp = (ev) => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          repoCleanup = null;
+          removeCaret();
+          if (!moved || targetPos == null || typeof getPos !== 'function') return;
+          const fromPos = getPos();
+          const mode = current.attrs.wrap || 'break';
+          const isWrap = mode === 'wrap-left' || mode === 'wrap-right';
+          let patch = {};
+          if (isWrap) {
+            const r = sheet ? sheet.getBoundingClientRect() : null;
+            const midX = r ? r.left + r.width / 2 : ev.clientX;
+            patch = { wrap: sideForX(ev.clientX, midX) };
+          }
+          const tr = repositionImageNode(view.state, fromPos, targetPos, patch);
+          if (tr) view.dispatch(tr);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        repoCleanup = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          removeCaret();
+        };
+      };
+      const onBodyPointerDown = (e) => {
+        const mode = current.attrs.wrap || 'break';
+        if (mode === 'front' || mode === 'behind') startMove(e);
+        else startReposition(e);
+      };
+      dom.addEventListener('pointerdown', onBodyPointerDown);
+      // Disable the browser's native image drag so it doesn't fight our reposition.
+      dom.addEventListener('dragstart', (e) => e.preventDefault());
       const startDrag = (handle, e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -291,6 +352,8 @@ export const ResizableImage = Image.extend({
         destroy() {
           if (cleanup) cleanup();
           if (moveCleanup) moveCleanup();
+          if (repoCleanup) repoCleanup();
+          removeCaret();
         },
       };
     };
