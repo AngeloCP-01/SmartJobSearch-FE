@@ -57,3 +57,15 @@ test('repositionImageNode returns null for a same-position no-op with no attr ch
   expect(repositionImageNode(editor.state, from, from, {})).toBeNull();
   editor.destroy();
 });
+
+test('repositionImageNode preserves other attrs and selects the moved node', () => {
+  const editor = editorWithImageInFirstPara();
+  const from = imagePos(editor);
+  const secondParaInner = paraPositions(editor)[1] + 1;
+  editor.view.dispatch(repositionImageNode(editor.state, from, secondParaInner, { wrap: 'wrap-right' }));
+  let node = null;
+  editor.state.doc.descendants((n) => { if (n.type.name === 'image') node = n; });
+  expect(node.attrs.src).toBe('http://x/a.png');
+  expect(editor.state.selection.node?.type.name).toBe('image');
+  editor.destroy();
+});

@@ -18,7 +18,13 @@ export function repositionImageNode(state, fromPos, toPos, attrsPatch = {}) {
   if (insertPos === fromPos && !patchChanges) return null;
 
   const newNode = node.type.create({ ...node.attrs, ...attrsPatch }, node.content, node.marks);
-  tr = tr.insert(insertPos, newNode);
+  try {
+    tr = tr.insert(insertPos, newNode);
+  } catch {
+    // toPos didn't land in a spot that can host an inline image (e.g. a block
+    // boundary from an off-target drop) — abort gracefully per the contract.
+    return null;
+  }
   const created = tr.doc.nodeAt(insertPos);
   if (created && created.type.name === 'image') {
     tr = tr.setSelection(NodeSelection.create(tr.doc, insertPos));
