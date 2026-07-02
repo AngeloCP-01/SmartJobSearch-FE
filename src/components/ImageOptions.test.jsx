@@ -78,11 +78,11 @@ test('renders the five wrap-mode buttons and sets the mode', async () => {
   const editor = makeEditor();
   const user = userEvent.setup();
   render(<ImageOptions editor={editor} />);
-  for (const name of ['In line', 'Break text', 'Wrap text', 'In front of text', 'Behind text']) {
+  for (const name of ['In line', 'Over text', 'Behind text', 'Wrap around', 'Break']) {
     expect(screen.getByRole('button', { name })).toBeInTheDocument();
   }
-  await user.click(screen.getByRole('button', { name: 'Behind text' }));
-  expect(imgAttrs(editor).wrap).toBe('behind');
+  await user.click(screen.getByRole('button', { name: 'Over text' }));
+  expect(imgAttrs(editor).wrap).toBe('front');
 });
 
 test('no align buttons are rendered in any mode', async () => {
@@ -92,14 +92,14 @@ test('no align buttons are rendered in any mode', async () => {
   // break mode (default)
   expect(screen.queryByRole('button', { name: /^align image/i })).toBeNull();
   // switch to wrap — still no align buttons
-  await user.click(screen.getByRole('button', { name: 'Wrap text' }));
+  await user.click(screen.getByRole('button', { name: 'Wrap around' }));
   expect(screen.queryByRole('button', { name: /^align image/i })).toBeNull();
 });
 
-test('Wrap text defaults to wrap-left when not already wrapping', async () => {
+test('Wrap around defaults to wrap-left when not already wrapping', async () => {
   const editor = makeEditor();
   const user = userEvent.setup();
   render(<ImageOptions editor={editor} />);
-  await user.click(screen.getByRole('button', { name: 'Wrap text' }));
+  await user.click(screen.getByRole('button', { name: 'Wrap around' }));
   expect(imgAttrs(editor).wrap).toBe('wrap-left');
 });

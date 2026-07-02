@@ -4,10 +4,10 @@ import { uploadImage } from '../api/images';
 
 const WRAP_MODES = [
   { mode: 'inline', label: 'In line', icon: Type },
-  { mode: 'break', label: 'Break text', icon: Rows3 },
-  { mode: 'wrap', label: 'Wrap text', icon: WrapText },
-  { mode: 'front', label: 'In front of text', icon: BringToFront },
+  { mode: 'front', label: 'Over text', icon: BringToFront },
   { mode: 'behind', label: 'Behind text', icon: SendToBack },
+  { mode: 'wrap', label: 'Wrap around', icon: WrapText },
+  { mode: 'break', label: 'Break', icon: Rows3 },
 ];
 
 function IconBtn({ label, active, onClick, children }) {
