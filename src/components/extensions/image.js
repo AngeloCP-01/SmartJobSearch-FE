@@ -198,7 +198,7 @@ export const ResizableImage = Image.extend({
         const onMove = (ev) => {
           moved = true;
           const at = view.posAtCoords({ left: ev.clientX, top: ev.clientY });
-          if (!at) return;
+          if (!at) { targetPos = null; return; }
           targetPos = at.pos;
           const coords = view.coordsAtPos(targetPos);
           if (!dropCaret) {
