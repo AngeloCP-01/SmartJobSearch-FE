@@ -18,15 +18,14 @@ function makeEditor() {
   editor.commands.setNodeSelection(pos);
   return editor;
 }
-const imgAttrs = (editor) => editor.getJSON().content.find((n) => n.type === 'image').attrs;
-
-test('align buttons set the image align', async () => {
-  const editor = makeEditor();
-  const user = userEvent.setup();
-  render(<ImageOptions editor={editor} />);
-  await user.click(screen.getByRole('button', { name: 'Align image center' }));
-  expect(imgAttrs(editor).align).toBe('center');
-});
+const imgAttrs = (editor) => {
+  let found;
+  editor.state.doc.descendants((n) => {
+    if (n.type.name === 'image') found = n;
+    return !found;
+  });
+  return found.attrs;
+};
 
 test('reset size clears the image width and height', async () => {
   const editor = makeEditor();
@@ -52,7 +51,12 @@ test('delete removes the image', async () => {
   const user = userEvent.setup();
   render(<ImageOptions editor={editor} />);
   await user.click(screen.getByRole('button', { name: 'Delete image' }));
-  expect(editor.getJSON().content.find((n) => n.type === 'image')).toBeUndefined();
+  let img;
+  editor.state.doc.descendants((n) => {
+    if (n.type.name === 'image') img = n;
+    return !img;
+  });
+  expect(img).toBeUndefined();
 });
 
 test('replace uploads a new file and swaps the src', async () => {
@@ -67,5 +71,35 @@ test('replace uploads a new file and swaps the src', async () => {
 test('buttons expose hover titles', () => {
   const editor = makeEditor();
   render(<ImageOptions editor={editor} />);
-  expect(screen.getByRole('button', { name: 'Align image left' })).toHaveAttribute('title', 'Align image left');
+  expect(screen.getByRole('button', { name: 'In line' })).toHaveAttribute('title', 'In line');
+});
+
+test('renders the five wrap-mode buttons and sets the mode', async () => {
+  const editor = makeEditor();
+  const user = userEvent.setup();
+  render(<ImageOptions editor={editor} />);
+  for (const name of ['In line', 'Over text', 'Behind text', 'Wrap around', 'Break']) {
+    expect(screen.getByRole('button', { name })).toBeInTheDocument();
+  }
+  await user.click(screen.getByRole('button', { name: 'Over text' }));
+  expect(imgAttrs(editor).wrap).toBe('front');
+});
+
+test('no align buttons are rendered in any mode', async () => {
+  const editor = makeEditor();
+  const user = userEvent.setup();
+  render(<ImageOptions editor={editor} />);
+  // break mode (default)
+  expect(screen.queryByRole('button', { name: /^align image/i })).toBeNull();
+  // switch to wrap — still no align buttons
+  await user.click(screen.getByRole('button', { name: 'Wrap around' }));
+  expect(screen.queryByRole('button', { name: /^align image/i })).toBeNull();
+});
+
+test('Wrap around defaults to wrap-left when not already wrapping', async () => {
+  const editor = makeEditor();
+  const user = userEvent.setup();
+  render(<ImageOptions editor={editor} />);
+  await user.click(screen.getByRole('button', { name: 'Wrap around' }));
+  expect(imgAttrs(editor).wrap).toBe('wrap-left');
 });

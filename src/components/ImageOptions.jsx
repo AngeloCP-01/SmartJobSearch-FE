@@ -1,5 +1,14 @@
-import { AlignLeft, AlignCenter, AlignRight, RotateCcw, RefreshCw, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { RotateCcw, RefreshCw, Trash2, Type, Rows3, WrapText, BringToFront, SendToBack } from 'lucide-react';
 import { uploadImage } from '../api/images';
+
+const WRAP_MODES = [
+  { mode: 'inline', label: 'In line', icon: Type },
+  { mode: 'front', label: 'Over text', icon: BringToFront },
+  { mode: 'behind', label: 'Behind text', icon: SendToBack },
+  { mode: 'wrap', label: 'Wrap around', icon: WrapText },
+  { mode: 'break', label: 'Break', icon: Rows3 },
+];
 
 function IconBtn({ label, active, onClick, children }) {
   return (
@@ -17,9 +26,29 @@ function IconBtn({ label, active, onClick, children }) {
 }
 
 export default function ImageOptions({ editor }) {
+  // Standalone (outside TipTap's BubbleMenu) this component isn't otherwise
+  // re-rendered when the editor's active image attrs change, so subscribe to
+  // transactions to keep the wrap-mode buttons in sync.
+  const [, forceRender] = useState(0);
+  useEffect(() => {
+    if (!editor) return undefined;
+    const rerender = () => forceRender((n) => n + 1);
+    editor.on('transaction', rerender);
+    return () => editor.off('transaction', rerender);
+  }, [editor]);
+
   if (!editor) return null;
   const chain = () => editor.chain().focus();
-  const align = editor.getAttributes('image').align;
+  const wrap = editor.getAttributes('image').wrap || 'break';
+  const isWrap = wrap === 'wrap-left' || wrap === 'wrap-right';
+
+  // Positioning is drag-driven; "Wrap text" keeps the current side if already
+  // wrapping, else defaults to wrap-left (dragging then changes the side).
+  const applyWrap = (mode) => {
+    if (mode === 'wrap') chain().setImageWrap(isWrap ? wrap : 'wrap-left').run();
+    else chain().setImageWrap(mode).run();
+  };
+  const wrapActive = (mode) => (mode === 'wrap' ? isWrap : wrap === mode);
 
   const onReplace = async (e) => {
     const file = e.target.files?.[0];
@@ -35,9 +64,11 @@ export default function ImageOptions({ editor }) {
 
   return (
     <div className="image-options flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-md">
-      <IconBtn label="Align image left" active={align === 'left'} onClick={() => chain().setImageAlign('left').run()}><AlignLeft size={16} /></IconBtn>
-      <IconBtn label="Align image center" active={align === 'center'} onClick={() => chain().setImageAlign('center').run()}><AlignCenter size={16} /></IconBtn>
-      <IconBtn label="Align image right" active={align === 'right'} onClick={() => chain().setImageAlign('right').run()}><AlignRight size={16} /></IconBtn>
+      {WRAP_MODES.map(({ mode, label, icon: Icon }) => (
+        <IconBtn key={mode} label={label} active={wrapActive(mode)} onClick={() => applyWrap(mode)}>
+          <Icon size={16} />
+        </IconBtn>
+      ))}
       <span className="mx-0.5 h-5 w-px bg-slate-200" />
       <button
         type="button"

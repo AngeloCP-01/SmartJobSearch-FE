@@ -1,9 +1,15 @@
 import Image from '@tiptap/extension-image';
+import { NodeSelection } from '@tiptap/pm/state';
+import { sideForX, repositionImageNode } from './imageReposition';
 
 // Image node extended with width + align attributes and a corner drag-resize
 // handle (vanilla NodeView). Inline-resize is verified manually / in e2e
 // (jsdom can't simulate pointer drag); the attribute commands are unit-tested.
 export const ResizableImage = Image.extend({
+  addOptions() {
+    return { ...this.parent?.(), inline: true };
+  },
+
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -22,28 +28,66 @@ export const ResizableImage = Image.extend({
         parseHTML: (el) => el.getAttribute('data-align'),
         renderHTML: (attrs) => (attrs.align ? { 'data-align': attrs.align } : {}),
       },
+      wrap: {
+        default: 'break',
+        parseHTML: (el) => el.getAttribute('data-wrap') || 'break',
+        renderHTML: (attrs) =>
+          attrs.wrap && attrs.wrap !== 'break' ? { 'data-wrap': attrs.wrap } : {},
+      },
+      offsetX: {
+        default: null,
+        parseHTML: (el) => {
+          const v = el.getAttribute('data-offset-x');
+          return v == null ? null : parseFloat(v);
+        },
+        renderHTML: (attrs) =>
+          attrs.offsetX != null ? { 'data-offset-x': attrs.offsetX } : {},
+      },
+      offsetY: {
+        default: null,
+        parseHTML: (el) => {
+          const v = el.getAttribute('data-offset-y');
+          return v == null ? null : parseFloat(v);
+        },
+        renderHTML: (attrs) =>
+          attrs.offsetY != null ? { 'data-offset-y': attrs.offsetY } : {},
+      },
     };
   },
 
   addCommands() {
+    // Delegates to the built-in updateAttributes (so ranges / AllSelection
+    // keep working as before), then restores a NodeSelection on the image.
+    // Now that the image is inline, ProseMirror's default NodeSelection#map
+    // collapses to a TextSelection right after any attribute edit (its
+    // parent paragraph has inline content, so Selection.near never re-picks
+    // the node) — without this, a second toolbar action right after the
+    // first would silently find no image to update.
+    const updateImageAttrs = (attrs) => ({ state, tr, dispatch, commands }) => {
+      const { selection } = state;
+      const wasNodeSelected =
+        selection instanceof NodeSelection && selection.node.type.name === this.name;
+      const pos = wasNodeSelected ? selection.from : null;
+      const applied = commands.updateAttributes(this.name, attrs);
+      if (applied && pos != null && dispatch) {
+        tr.setSelection(NodeSelection.create(tr.doc, pos));
+      }
+      return applied;
+    };
+
     return {
       ...this.parent?.(),
-      setImageWidth:
-        (width) =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { width }),
-      setImageAlign:
-        (align) =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { align }),
-      setImageSize:
-        ({ width, height }) =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { width, height }),
-      resetImageSize:
-        () =>
-        ({ commands }) =>
-          commands.updateAttributes(this.name, { width: null, height: null }),
+      setImageWidth: (width) => updateImageAttrs({ width }),
+      setImageAlign: (align) => updateImageAttrs({ align }),
+      setImageSize: ({ width, height }) => updateImageAttrs({ width, height }),
+      resetImageSize: () => updateImageAttrs({ width: null, height: null }),
+      setImageWrap: (wrap) =>
+        updateImageAttrs(
+          wrap === 'front' || wrap === 'behind'
+            ? { wrap }
+            : { wrap, offsetX: null, offsetY: null },
+        ),
+      setImagePosition: ({ offsetX, offsetY }) => updateImageAttrs({ offsetX, offsetY }),
     };
   },
 
@@ -53,6 +97,17 @@ export const ResizableImage = Image.extend({
       const dom = document.createElement('div');
       dom.className = 'tiptap-image';
       if (current.attrs.align) dom.setAttribute('data-align', current.attrs.align);
+      const applyWrap = (attrs) => {
+        dom.dataset.wrap = attrs.wrap || 'break';
+        if (attrs.wrap === 'front' || attrs.wrap === 'behind') {
+          dom.style.left = attrs.offsetX != null ? `${attrs.offsetX}px` : '';
+          dom.style.top = attrs.offsetY != null ? `${attrs.offsetY}px` : '';
+        } else {
+          dom.style.left = '';
+          dom.style.top = '';
+        }
+      };
+      applyWrap(current.attrs);
 
       const img = document.createElement('img');
       img.src = current.attrs.src;
@@ -78,6 +133,117 @@ export const ResizableImage = Image.extend({
       });
 
       let cleanup = null;
+      let moveCleanup = null;
+      const startMove = (e) => {
+        if (current.attrs.wrap !== 'front' && current.attrs.wrap !== 'behind') return;
+        e.preventDefault();
+        if (typeof getPos === 'function') editor.commands.setNodeSelection(getPos());
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startLeft = dom.style.left ? parseFloat(dom.style.left) : dom.offsetLeft;
+        const startTop = dom.style.top ? parseFloat(dom.style.top) : dom.offsetTop;
+        const sheet = dom.closest('.editor-sheet');
+        let moved = false;
+        const onMove = (ev) => {
+          moved = true;
+          let nx = startLeft + (ev.clientX - startX);
+          let ny = startTop + (ev.clientY - startY);
+          if (sheet) {
+            const maxX = Math.max(0, sheet.clientWidth - dom.offsetWidth);
+            const maxY = Math.max(0, sheet.clientHeight - dom.offsetHeight);
+            nx = Math.max(0, Math.min(nx, maxX));
+            ny = Math.max(0, Math.min(ny, maxY));
+          }
+          dom.style.left = `${Math.round(nx)}px`;
+          dom.style.top = `${Math.round(ny)}px`;
+        };
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          moveCleanup = null;
+          if (moved && typeof getPos === 'function') {
+            const pos = getPos();
+            const offsetX = parseFloat(dom.style.left) || 0;
+            const offsetY = parseFloat(dom.style.top) || 0;
+            editor
+              .chain()
+              .command(({ tr, state }) => {
+                const attrs = state.doc.nodeAt(pos)?.attrs ?? current.attrs;
+                tr.setNodeMarkup(pos, undefined, { ...attrs, offsetX, offsetY });
+                tr.setSelection(NodeSelection.create(tr.doc, pos));
+                return true;
+              })
+              .run();
+          }
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        moveCleanup = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+        };
+      };
+      let repoCleanup = null;
+      let dropCaret = null;
+      const removeCaret = () => {
+        if (dropCaret) { dropCaret.remove(); dropCaret = null; }
+      };
+      const startReposition = (e) => {
+        e.preventDefault();
+        if (typeof getPos === 'function') editor.commands.setNodeSelection(getPos());
+        const view = editor.view;
+        const sheet = dom.closest('.editor-sheet');
+        let moved = false;
+        let targetPos = null;
+        const onMove = (ev) => {
+          moved = true;
+          const at = view.posAtCoords({ left: ev.clientX, top: ev.clientY });
+          if (!at) { targetPos = null; return; }
+          targetPos = at.pos;
+          const coords = view.coordsAtPos(targetPos);
+          if (!dropCaret) {
+            dropCaret = document.createElement('div');
+            dropCaret.className = 'tiptap-image__drop-caret';
+            document.body.appendChild(dropCaret);
+          }
+          dropCaret.style.left = `${coords.left}px`;
+          dropCaret.style.top = `${coords.top}px`;
+          dropCaret.style.height = `${Math.max(4, coords.bottom - coords.top)}px`;
+        };
+        const onUp = (ev) => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          repoCleanup = null;
+          removeCaret();
+          if (!moved || targetPos == null || typeof getPos !== 'function') return;
+          const fromPos = getPos();
+          const mode = current.attrs.wrap || 'break';
+          const isWrap = mode === 'wrap-left' || mode === 'wrap-right';
+          let patch = {};
+          if (isWrap) {
+            const r = sheet ? sheet.getBoundingClientRect() : null;
+            const midX = r ? r.left + r.width / 2 : ev.clientX;
+            patch = { wrap: sideForX(ev.clientX, midX) };
+          }
+          const tr = repositionImageNode(view.state, fromPos, targetPos, patch);
+          if (tr) view.dispatch(tr);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        repoCleanup = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          removeCaret();
+        };
+      };
+      const onBodyPointerDown = (e) => {
+        const mode = current.attrs.wrap || 'break';
+        if (mode === 'front' || mode === 'behind') startMove(e);
+        else startReposition(e);
+      };
+      dom.addEventListener('pointerdown', onBodyPointerDown);
+      // Disable the browser's native image drag so it doesn't fight our reposition.
+      dom.addEventListener('dragstart', (e) => e.preventDefault());
       const startDrag = (handle, e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -143,6 +309,7 @@ export const ResizableImage = Image.extend({
               .command(({ tr, state }) => {
                 const attrs = state.doc.nodeAt(pos)?.attrs ?? current.attrs;
                 tr.setNodeMarkup(pos, undefined, { ...attrs, width, height });
+                tr.setSelection(NodeSelection.create(tr.doc, pos));
                 return true;
               })
               .run();
@@ -173,6 +340,7 @@ export const ResizableImage = Image.extend({
           dom.style.width = updated.attrs.width || '';
           dom.style.height = updated.attrs.height || '';
           img.src = updated.attrs.src;
+          applyWrap(updated.attrs);
           return true;
         },
         selectNode() {
@@ -183,6 +351,9 @@ export const ResizableImage = Image.extend({
         },
         destroy() {
           if (cleanup) cleanup();
+          if (moveCleanup) moveCleanup();
+          if (repoCleanup) repoCleanup();
+          removeCaret();
         },
       };
     };

@@ -186,7 +186,11 @@ test('insert image uploads the file and inserts an image node', async () => {
   await user.upload(screen.getByLabelText('Insert image'), file);
 
   await waitFor(() => {
-    const img = editor.getJSON().content.find((n) => n.type === 'image');
+    let img;
+    editor.state.doc.descendants((n) => {
+      if (n.type.name === 'image') img = n;
+      return !img;
+    });
     expect(img?.attrs.src).toBe('http://localhost:4000/api/images/img1');
   });
 
