@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PenLine, Copy, Download, Check, Sparkles, Save } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { PenLine, Copy, Download, Check, Sparkles, Save, SquarePen } from 'lucide-react';
 import { listApplications, getApplication } from '../api/applications';
 import { listDocuments, createDocument, linkDocument } from '../api/documents';
 import { getAnalysisConfig, generateCoverLetter } from '../api/analysis';
+import { createAuthoredDocument } from '../api/authoredDocuments';
+import { textToProseMirrorDoc } from '../lib/textToProseMirror';
 import Button from '../components/Button';
 
 const selectClass = 'rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500';
@@ -27,6 +30,7 @@ export function coverLetterFilename(position, company) {
 
 export default function CoverLetter() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [applicationId, setApplicationId] = useState('');
   const [documentId, setDocumentId] = useState('');
   const [letter, setLetter] = useState('');
@@ -70,6 +74,23 @@ export default function CoverLetter() {
       if (applicationId) qc.invalidateQueries({ queryKey: ['application', applicationId] });
     },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not save the cover letter to Documents.'),
+  });
+
+  // Convert the current letter to rich text, create an editable AuthoredDocument
+  // (linked to the application), and open it in the TipTap Editor.
+  const openInEditor = useMutation({
+    mutationFn: () => createAuthoredDocument({
+      title: `Cover Letter — ${meta?.position || 'Untitled'}`,
+      type: 'CoverLetter',
+      content: textToProseMirrorDoc(letter),
+      applicationId: applicationId || undefined,
+    }),
+    onSuccess: (doc) => {
+      setError(null);
+      qc.invalidateQueries({ queryKey: ['authoredDocuments'] });
+      navigate(`/editor/${doc.id}`);
+    },
+    onError: (e) => setError(e.response?.data?.error?.message || 'Could not open the cover letter in the editor.'),
   });
 
   function onGenerate(e) {
@@ -125,6 +146,9 @@ export default function CoverLetter() {
               </Button>
               <Button type="button" variant="subtle" onClick={() => downloadTxt(letter, coverLetterFilename(meta?.position, meta?.companyName))}>
                 <Download size={16} aria-hidden="true" /> .txt
+              </Button>
+              <Button type="button" variant="subtle" onClick={() => openInEditor.mutate()} loading={openInEditor.isPending}>
+                <SquarePen size={16} aria-hidden="true" /> Edit in Editor
               </Button>
               <Button type="button" onClick={() => saveDoc.mutate()} loading={saveDoc.isPending}>
                 {saved ? <Check size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />} {saved ? 'Saved' : 'Save to Documents'}
