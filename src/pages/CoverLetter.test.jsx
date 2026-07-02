@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server, API } from '../test/server';
 import CoverLetter, { coverLetterFilename } from './CoverLetter';
 import { createDocument, linkDocument } from '../api/documents';
+import { createAuthoredDocument } from '../api/authoredDocuments';
 
 // Keep the real listDocuments (drives the Résumé dropdown via MSW); mock only
 // the write calls so "Save to Documents" can be asserted without a flaky
@@ -14,6 +15,13 @@ vi.mock('../api/documents', async (importActual) => ({
   createDocument: vi.fn(),
   linkDocument: vi.fn(),
 }));
+
+const navigateMock = vi.fn();
+vi.mock('react-router-dom', async (importActual) => ({
+  ...(await importActual()),
+  useNavigate: () => navigateMock,
+}));
+vi.mock('../api/authoredDocuments', () => ({ createAuthoredDocument: vi.fn() }));
 
 test('coverLetterFilename derives the name from the position + company', () => {
   expect(coverLetterFilename('Senior Full Stack Engineer', 'Northwind Cloud'))
@@ -78,6 +86,31 @@ test('saves the generated letter as a CoverLetter document linked to the applica
   expect(fd.get('name')).toBe('Cover Letter — Backend Engineer');
   expect(fd.get('file').name).toBe('Backend Engineer - Acme-cover-letter.txt');
   await waitFor(() => expect(linkDocument).toHaveBeenCalledWith('a1', 'doc9'));
+});
+
+test('Edit in Editor creates a CoverLetter AuthoredDocument and navigates to it', async () => {
+  navigateMock.mockReset();
+  createAuthoredDocument.mockReset().mockResolvedValue({ id: 'ad7' });
+  server.use(http.post(`${API}/analysis/cover-letter`, () => HttpResponse.json({
+    coverLetter: 'Dear Hiring Team,\n\nI am excited to apply.',
+    meta: { position: 'Backend Engineer', companyName: 'Acme', documentName: 'My Resume', model: 'm' },
+  }, { status: 201 })));
+  renderPage();
+  await screen.findByRole('option', { name: 'Backend Engineer' });
+  await screen.findByRole('option', { name: 'My Resume' });
+  await userEvent.selectOptions(screen.getByLabelText('Application'), 'a1');
+  await userEvent.selectOptions(screen.getByLabelText('Résumé'), 'd1');
+  await userEvent.click(screen.getByRole('button', { name: /generate/i }));
+  await screen.findByLabelText('Cover letter');
+  await userEvent.click(screen.getByRole('button', { name: /edit in editor/i }));
+  await waitFor(() => expect(createAuthoredDocument).toHaveBeenCalled());
+  const body = createAuthoredDocument.mock.calls[0][0];
+  expect(body.type).toBe('CoverLetter');
+  expect(body.title).toBe('Cover Letter — Backend Engineer');
+  expect(body.applicationId).toBe('a1');
+  expect(body.content.type).toBe('doc');
+  expect(body.content.content[0].content[0].text).toBe('Dear Hiring Team,');
+  await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/editor/ad7'));
 });
 
 test('disables Generate when AI is not configured', async () => {
