@@ -19,6 +19,10 @@ export async function downloadDocument(id) {
   const { data } = await api.get(`/documents/${id}/file`, { responseType: 'blob' });
   return data;
 }
+export async function getDocumentText(id) {
+  const { data } = await api.get(`/documents/${id}/text`);
+  return data; // { ok, text }
+}
 export async function linkDocument(applicationId, documentId) {
   const { data } = await api.post(`/applications/${applicationId}/documents`, { documentId });
   return data;

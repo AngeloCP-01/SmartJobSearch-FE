@@ -1,7 +1,11 @@
 import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Upload, Trash2, Download, Pencil, FileText, X } from 'lucide-react';
-import { listDocuments, createDocument, deleteDocument, downloadDocument } from '../api/documents';
+import { useNavigate } from 'react-router-dom';
+import { Search, Upload, Trash2, Download, Pencil, FileText, X, FilePenLine } from 'lucide-react';
+import { listDocuments, createDocument, deleteDocument, downloadDocument, getDocumentText } from '../api/documents';
+import { textToProseMirrorDoc } from '../lib/textToProseMirror';
+import { markdownToProseMirrorDoc } from '../lib/markdownToProseMirror';
+import { createAuthoredDocument } from '../api/authoredDocuments';
 import DocumentDrawer from '../components/DocumentDrawer';
 import Button from '../components/Button';
 import Spinner from '../components/Spinner';
@@ -14,6 +18,9 @@ const TYPE_STYLE = {
   Other: 'bg-slate-100 text-slate-600',
 };
 const fmtSize = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+const OPENABLE = new Set(['pdf', 'docx', 'md']);
+const extOf = (filename) => (String(filename).match(/\.([^.]+)$/)?.[1] || '').toLowerCase();
+const AUTHORED_TYPE = { Resume: 'Resume', CoverLetter: 'CoverLetter', Other: 'Note' };
 
 function saveBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -38,6 +45,8 @@ export default function Documents() {
   const [editing, setEditing] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
+  const navigate = useNavigate();
+  const [openingId, setOpeningId] = useState(null);
 
   function pickFile(f) {
     if (!f) return;
@@ -88,6 +97,31 @@ export default function Documents() {
       .catch(() => setError(`Could not download ${doc.name}. Please try again.`));
   }
 
+  async function onOpenInEditor(doc) {
+    setError(null);
+    setOpeningId(doc.id);
+    try {
+      const { ok, text } = await getDocumentText(doc.id);
+      if (!ok) {
+        setError('No selectable text found — this file may be scanned or image-only.');
+        return;
+      }
+      const content = extOf(doc.originalFilename) === 'md'
+        ? markdownToProseMirrorDoc(text)
+        : textToProseMirrorDoc(text);
+      const created = await createAuthoredDocument({
+        title: doc.name,
+        type: AUTHORED_TYPE[doc.type] || 'Note',
+        content,
+      });
+      navigate(`/editor/${created.id}`);
+    } catch {
+      setError("Couldn't open in editor. Please try again.");
+    } finally {
+      setOpeningId(null);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Documents</h1>
@@ -98,7 +132,7 @@ export default function Documents() {
           ref={fileInputRef}
           aria-label="File"
           type="file"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".pdf,.doc,.docx,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown"
           className="sr-only"
           onChange={(e) => pickFile(e.target.files?.[0])}
         />
@@ -139,7 +173,7 @@ export default function Documents() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-medium text-slate-700">Click to choose a file or drag it here</span>
-                <span className="block text-xs text-slate-500">PDF, DOC, or DOCX · up to 5 MB</span>
+                <span className="block text-xs text-slate-500">PDF, DOC, DOCX, or Markdown · up to 5 MB</span>
               </span>
             </>
           )}
@@ -193,6 +227,12 @@ export default function Documents() {
                 {d.notes && <p className="mt-0.5 text-sm text-slate-500">{d.notes}</p>}
               </div>
               <div className="flex shrink-0 items-center gap-1">
+                {OPENABLE.has(extOf(d.originalFilename)) && (
+                  <Button variant="subtle" aria-label={`Open ${d.name} in editor`}
+                    disabled={openingId === d.id} onClick={() => onOpenInEditor(d)}>
+                    <FilePenLine size={16} aria-hidden="true" />
+                  </Button>
+                )}
                 <Button variant="subtle" aria-label={`Download ${d.name}`} onClick={() => onDownload(d)}>
                   <Download size={16} aria-hidden="true" />
                 </Button>
