@@ -46,7 +46,7 @@ body {
 .tiptap-image img { display: block; width: 100%; height: auto; }
 .tiptap-image[data-selected="true"] { outline: 2px solid #0284c7; outline-offset: 2px; }
 
-.editor-sheet { position: relative; }
+.editor-sheet { position: relative; isolation: isolate; }
 .tiptap-image[data-wrap="inline"] { display: inline-block; vertical-align: bottom; }
 .tiptap-image[data-wrap="wrap-left"] { float: left; margin: 0 1em 0.5em 0; }
 .tiptap-image[data-wrap="wrap-right"] { float: right; margin: 0 0 0.5em 1em; }
