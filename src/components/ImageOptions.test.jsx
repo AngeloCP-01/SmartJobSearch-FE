@@ -27,14 +27,6 @@ const imgAttrs = (editor) => {
   return found.attrs;
 };
 
-test('align buttons set the image align', async () => {
-  const editor = makeEditor();
-  const user = userEvent.setup();
-  render(<ImageOptions editor={editor} />);
-  await user.click(screen.getByRole('button', { name: 'Align image center' }));
-  expect(imgAttrs(editor).align).toBe('center');
-});
-
 test('reset size clears the image width and height', async () => {
   const editor = makeEditor();
   editor.commands.setImageSize({ width: '250px', height: '160px' });
@@ -79,7 +71,7 @@ test('replace uploads a new file and swaps the src', async () => {
 test('buttons expose hover titles', () => {
   const editor = makeEditor();
   render(<ImageOptions editor={editor} />);
-  expect(screen.getByRole('button', { name: 'Align image left' })).toHaveAttribute('title', 'Align image left');
+  expect(screen.getByRole('button', { name: 'In line' })).toHaveAttribute('title', 'In line');
 });
 
 test('renders the five wrap-mode buttons and sets the mode', async () => {
@@ -93,13 +85,21 @@ test('renders the five wrap-mode buttons and sets the mode', async () => {
   expect(imgAttrs(editor).wrap).toBe('behind');
 });
 
-test('hides align buttons for inline/front/behind modes', async () => {
+test('no align buttons are rendered in any mode', async () => {
   const editor = makeEditor();
-  editor.commands.setImageWrap('front');
   const user = userEvent.setup();
   render(<ImageOptions editor={editor} />);
-  expect(screen.queryByRole('button', { name: 'Align image left' })).toBeNull();
-  // Switch to a flow mode → align reappears.
-  await user.click(screen.getByRole('button', { name: 'Break text' }));
-  expect(screen.getByRole('button', { name: 'Align image left' })).toBeInTheDocument();
+  // break mode (default)
+  expect(screen.queryByRole('button', { name: /^align image/i })).toBeNull();
+  // switch to wrap — still no align buttons
+  await user.click(screen.getByRole('button', { name: 'Wrap text' }));
+  expect(screen.queryByRole('button', { name: /^align image/i })).toBeNull();
+});
+
+test('Wrap text defaults to wrap-left when not already wrapping', async () => {
+  const editor = makeEditor();
+  const user = userEvent.setup();
+  render(<ImageOptions editor={editor} />);
+  await user.click(screen.getByRole('button', { name: 'Wrap text' }));
+  expect(imgAttrs(editor).wrap).toBe('wrap-left');
 });

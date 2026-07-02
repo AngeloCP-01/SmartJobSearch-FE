@@ -40,16 +40,14 @@ body {
 
 /* Editor images */
 .tiptap-image { position: relative; display: block; width: fit-content; max-width: 100%; }
-.tiptap-image[data-align="center"] { margin-left: auto; margin-right: auto; }
-.tiptap-image[data-align="right"] { margin-left: auto; }
-.tiptap-image[data-align="left"] { margin-right: auto; }
 .tiptap-image img { display: block; width: 100%; height: auto; }
+.tiptap-image[data-wrap="break"] { margin-left: auto; margin-right: auto; }
 .tiptap-image[data-selected="true"] { outline: 2px solid #0284c7; outline-offset: 2px; }
 
 .editor-sheet { position: relative; isolation: isolate; }
 .tiptap-image[data-wrap="inline"] { display: inline-block; vertical-align: bottom; }
-.tiptap-image[data-wrap="wrap-left"] { float: left; margin: 0 1em 0.5em 0; }
-.tiptap-image[data-wrap="wrap-right"] { float: right; margin: 0 0 0.5em 1em; }
+.tiptap-image[data-wrap="wrap-left"] { float: left; margin: 0 1em 0.5em 0; shape-outside: margin-box; }
+.tiptap-image[data-wrap="wrap-right"] { float: right; margin: 0 0 0.5em 1em; shape-outside: margin-box; }
 .tiptap-image[data-wrap="front"] { position: absolute; z-index: 2; }
 .tiptap-image[data-wrap="behind"] { position: absolute; z-index: -1; }
 .tiptap-image[data-wrap="front"], .tiptap-image[data-wrap="behind"] { cursor: move; }

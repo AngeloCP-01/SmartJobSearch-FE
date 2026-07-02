@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  AlignLeft, AlignCenter, AlignRight, RotateCcw, RefreshCw, Trash2,
-  Type, Rows3, WrapText, BringToFront, SendToBack,
-} from 'lucide-react';
+import { RotateCcw, RefreshCw, Trash2, Type, Rows3, WrapText, BringToFront, SendToBack } from 'lucide-react';
 import { uploadImage } from '../api/images';
 
 const WRAP_MODES = [
@@ -29,9 +26,9 @@ function IconBtn({ label, active, onClick, children }) {
 }
 
 export default function ImageOptions({ editor }) {
-  // Standalone (e.g. outside TipTap's BubbleMenu) this component isn't
-  // otherwise re-rendered when the editor's active image attrs change, so
-  // subscribe directly to transactions to keep the wrap/align buttons in sync.
+  // Standalone (outside TipTap's BubbleMenu) this component isn't otherwise
+  // re-rendered when the editor's active image attrs change, so subscribe to
+  // transactions to keep the wrap-mode buttons in sync.
   const [, forceRender] = useState(0);
   useEffect(() => {
     if (!editor) return undefined;
@@ -42,27 +39,16 @@ export default function ImageOptions({ editor }) {
 
   if (!editor) return null;
   const chain = () => editor.chain().focus();
-  const align = editor.getAttributes('image').align;
   const wrap = editor.getAttributes('image').wrap || 'break';
-  // "Wrap text" resolves to a side; keep the current side if already wrapping,
-  // else default to wrap-left. Align buttons then switch the side.
   const isWrap = wrap === 'wrap-left' || wrap === 'wrap-right';
-  const showAlign = wrap === 'break' || isWrap;
 
+  // Positioning is drag-driven; "Wrap text" keeps the current side if already
+  // wrapping, else defaults to wrap-left (dragging then changes the side).
   const applyWrap = (mode) => {
-    if (mode === 'wrap') {
-      chain().setImageWrap(align === 'right' ? 'wrap-right' : 'wrap-left').run();
-    } else {
-      chain().setImageWrap(mode).run();
-    }
+    if (mode === 'wrap') chain().setImageWrap(isWrap ? wrap : 'wrap-left').run();
+    else chain().setImageWrap(mode).run();
   };
-
   const wrapActive = (mode) => (mode === 'wrap' ? isWrap : wrap === mode);
-
-  const setAlign = (side) => {
-    if (isWrap) chain().setImageWrap(side === 'right' ? 'wrap-right' : 'wrap-left').run();
-    else chain().setImageAlign(side).run();
-  };
 
   const onReplace = async (e) => {
     const file = e.target.files?.[0];
@@ -83,16 +69,6 @@ export default function ImageOptions({ editor }) {
           <Icon size={16} />
         </IconBtn>
       ))}
-      {showAlign && (
-        <>
-          <span className="mx-0.5 h-5 w-px bg-slate-200" />
-          <IconBtn label="Align image left" active={align === 'left' || wrap === 'wrap-left'} onClick={() => setAlign('left')}><AlignLeft size={16} /></IconBtn>
-          {!isWrap && (
-            <IconBtn label="Align image center" active={align === 'center'} onClick={() => setAlign('center')}><AlignCenter size={16} /></IconBtn>
-          )}
-          <IconBtn label="Align image right" active={align === 'right' || wrap === 'wrap-right'} onClick={() => setAlign('right')}><AlignRight size={16} /></IconBtn>
-        </>
-      )}
       <span className="mx-0.5 h-5 w-px bg-slate-200" />
       <button
         type="button"
