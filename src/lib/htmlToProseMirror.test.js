@@ -14,4 +14,16 @@ describe('htmlToProseMirrorDoc', () => {
     expect(htmlToProseMirrorDoc('').type).toBe('doc');
     expect(htmlToProseMirrorDoc(null).type).toBe('doc');
   });
+
+  test('preserves a ruled heading, a table, and centered alignment', () => {
+    const html =
+      '<h2 data-rule="true">SUMMARY</h2>' +
+      '<table class="doc-columns"><tbody><tr><td>Mobile</td><td>Databases</td></tr></tbody></table>' +
+      '<p style="text-align:center">Angelito C. Paa</p>';
+    const doc = htmlToProseMirrorDoc(html);
+    const json = JSON.stringify(doc);
+    expect(json).toContain('"rule":true');
+    expect(json).toContain('"type":"table"');
+    expect(json).toContain('"textAlign":"center"');
+  });
 });

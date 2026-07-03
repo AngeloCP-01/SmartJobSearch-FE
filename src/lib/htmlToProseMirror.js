@@ -7,8 +7,24 @@ import { generateJSON } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
+import { HeadingRule } from '../components/extensions/headingRule';
 
-const extensions = [StarterKit, Link, Underline];
+const extensions = [
+  StarterKit,
+  Link,
+  Underline,
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  Table,
+  TableRow,
+  TableHeader,
+  TableCell,
+  HeadingRule,
+];
 
 export function htmlToProseMirrorDoc(html) {
   return generateJSON(String(html ?? ''), extensions);
