@@ -5,6 +5,7 @@ import { Search, Upload, Trash2, Download, Pencil, FileText, X, FilePenLine } fr
 import { listDocuments, createDocument, deleteDocument, downloadDocument, getDocumentText } from '../api/documents';
 import { textToProseMirrorDoc } from '../lib/textToProseMirror';
 import { markdownToProseMirrorDoc } from '../lib/markdownToProseMirror';
+import { htmlToProseMirrorDoc } from '../lib/htmlToProseMirror';
 import { createAuthoredDocument } from '../api/authoredDocuments';
 import DocumentDrawer from '../components/DocumentDrawer';
 import Button from '../components/Button';
@@ -101,14 +102,17 @@ export default function Documents() {
     setError(null);
     setOpeningId(doc.id);
     try {
-      const { ok, text } = await getDocumentText(doc.id);
+      const { ok, kind, content: raw } = await getDocumentText(doc.id);
       if (!ok) {
         setError('No selectable text found — this file may be scanned or image-only.');
         return;
       }
-      const content = extOf(doc.originalFilename) === 'md'
-        ? markdownToProseMirrorDoc(text)
-        : textToProseMirrorDoc(text);
+      // DOCX comes back as HTML (formatting preserved); .md as raw markdown;
+      // PDF/plain as raw text.
+      let content;
+      if (kind === 'html') content = htmlToProseMirrorDoc(raw);
+      else if (extOf(doc.originalFilename) === 'md') content = markdownToProseMirrorDoc(raw);
+      else content = textToProseMirrorDoc(raw);
       const created = await createAuthoredDocument({
         title: doc.name,
         type: AUTHORED_TYPE[doc.type] || 'Note',

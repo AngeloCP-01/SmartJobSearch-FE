@@ -132,6 +132,7 @@ test('shows an error state when the request fails', async () => {
 const OPENABLE_DOCS = [
   { id: 'd1', name: 'Resume PDF', type: 'Resume', originalFilename: 'resume.pdf', mimeType: 'application/pdf', sizeBytes: 1000 },
   { id: 'd2', name: 'Legacy Doc', type: 'Other', originalFilename: 'old.doc', mimeType: 'application/msword', sizeBytes: 1000 },
+  { id: 'd3', name: 'Resume DOCX', type: 'Resume', originalFilename: 'resume.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', sizeBytes: 1000 },
 ];
 
 test('shows "Open in Editor" only for supported types', async () => {
@@ -139,6 +140,7 @@ test('shows "Open in Editor" only for supported types', async () => {
   renderPage();
   await waitFor(() => expect(screen.getByText('Resume PDF')).toBeInTheDocument());
   expect(screen.getByRole('button', { name: /open resume pdf in editor/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /open resume docx in editor/i })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /open legacy doc in editor/i })).not.toBeInTheDocument();
 });
 
@@ -147,7 +149,7 @@ test('Open in Editor creates an authored document and navigates to it', async ()
   createAuthoredDocument.mockReset().mockResolvedValue({ id: 'ad9' });
   server.use(
     http.get(`${API}/documents`, () => HttpResponse.json([OPENABLE_DOCS[0]])),
-    http.get(`${API}/documents/d1/text`, () => HttpResponse.json({ ok: true, text: 'Backend engineer resume text.' })),
+    http.get(`${API}/documents/d1/text`, () => HttpResponse.json({ ok: true, kind: 'text', content: 'Backend engineer resume text.' })),
   );
   renderPage();
   await waitFor(() => expect(screen.getByText('Resume PDF')).toBeInTheDocument());
@@ -162,11 +164,35 @@ test('Open in Editor creates an authored document and navigates to it', async ()
   await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/editor/ad9'));
 });
 
+test('Open in Editor converts DOCX html into a formatted editor document', async () => {
+  navigateMock.mockReset();
+  createAuthoredDocument.mockReset().mockResolvedValue({ id: 'ad10' });
+  server.use(
+    http.get(`${API}/documents`, () => HttpResponse.json([OPENABLE_DOCS[2]])),
+    http.get(`${API}/documents/d3/text`, () => HttpResponse.json({
+      ok: true, kind: 'html', content: '<p><strong>Summary</strong></p><ul><li>Node.js</li></ul>',
+    })),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Resume DOCX')).toBeInTheDocument());
+
+  await userEvent.click(screen.getByRole('button', { name: /open resume docx in editor/i }));
+
+  await waitFor(() => expect(createAuthoredDocument).toHaveBeenCalled());
+  const body = createAuthoredDocument.mock.calls[0][0];
+  expect(body.content.type).toBe('doc');
+  // the DOCX html path preserved a bold mark and a bullet list (not a flat wall of text)
+  const json = JSON.stringify(body.content);
+  expect(json).toContain('"type":"bold"');
+  expect(json).toContain('"type":"bulletList"');
+  await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/editor/ad10'));
+});
+
 test('Open in Editor shows an error when no text can be extracted', async () => {
   createAuthoredDocument.mockReset();
   server.use(
     http.get(`${API}/documents`, () => HttpResponse.json([OPENABLE_DOCS[0]])),
-    http.get(`${API}/documents/d1/text`, () => HttpResponse.json({ ok: false, text: '' })),
+    http.get(`${API}/documents/d1/text`, () => HttpResponse.json({ ok: false, kind: 'text', content: '' })),
   );
   renderPage();
   await waitFor(() => expect(screen.getByText('Resume PDF')).toBeInTheDocument());
