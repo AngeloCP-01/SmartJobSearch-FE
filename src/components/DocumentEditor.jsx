@@ -23,6 +23,7 @@ import { ResizableImage } from './extensions/image';
 import { migrateImageContent } from './extensions/imageContentMigration';
 import { FindReplace } from './extensions/findReplace';
 import { HeadingRule } from './extensions/headingRule';
+import { TableColumns } from './extensions/tableColumns';
 import FindReplacePanel from './FindReplacePanel';
 import { PAGE_SIZES, MARGINS, PAGE_WIDTH_CLASS, MARGIN_PAD_CLASS } from './editorConstants';
 
@@ -64,6 +65,7 @@ export default function DocumentEditor({ content, onChange }) {
       ResizableImage,
       FindReplace,
       HeadingRule,
+      TableColumns,
     ],
     content: migrateImageContent(content) || { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {

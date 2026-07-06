@@ -13,8 +13,9 @@ import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import { HeadingRule } from '../components/extensions/headingRule';
+import { TableColumns } from '../components/extensions/tableColumns';
 
-const extensions = [
+export const editorImportExtensions = [
   StarterKit,
   Link,
   Underline,
@@ -24,8 +25,9 @@ const extensions = [
   TableHeader,
   TableCell,
   HeadingRule,
+  TableColumns,
 ];
 
 export function htmlToProseMirrorDoc(html) {
-  return generateJSON(String(html ?? ''), extensions);
+  return generateJSON(String(html ?? ''), editorImportExtensions);
 }
