@@ -114,7 +114,7 @@ body {
   .editor-sheet .tiptap { min-height: 0 !important; }
   .editor-sheet table, .editor-sheet th, .editor-sheet td { border: 1px solid #94a3b8 !important; }
   .tiptap h2[data-rule="true"] { border-bottom: 1px solid #000; }
-  .tiptap table.doc-columns, .tiptap table.doc-columns td { border: none; }
+  .tiptap table.doc-columns, .tiptap table.doc-columns td { border: none !important; }
   .editor-sheet .tiptap-image__handle { display: none !important; }
   .tiptap-image[data-selected="true"] { outline: none !important; }
   .tiptap-image__dim { display: none !important; }
