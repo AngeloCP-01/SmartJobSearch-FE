@@ -16,7 +16,9 @@ import { HeadingRule } from '../components/extensions/headingRule';
 import { TableColumns } from '../components/extensions/tableColumns';
 
 export const editorImportExtensions = [
-  StarterKit,
+  // Match DocumentEditor's heading levels so a Word h4-h6 doesn't silently
+  // downgrade to h1 on load (the editor only knows levels 1-3).
+  StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
   Link,
   Underline,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
