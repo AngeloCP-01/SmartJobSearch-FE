@@ -22,8 +22,10 @@ import { PageDocument } from './extensions/pageDocument';
 import { ResizableImage } from './extensions/image';
 import { migrateImageContent } from './extensions/imageContentMigration';
 import { FindReplace } from './extensions/findReplace';
+import { HeadingRule } from './extensions/headingRule';
+import { TableColumns } from './extensions/tableColumns';
 import FindReplacePanel from './FindReplacePanel';
-import { PAGE_SIZES, MARGINS, PAGE_WIDTH_CLASS, MARGIN_PAD_CLASS } from './editorConstants';
+import { PAGE_SIZES, MARGINS, PAGE_WIDTH_CLASS, MARGIN_PAD_CLASS, MARGIN_IN } from './editorConstants';
 
 function pageOf(content) {
   return {
@@ -62,6 +64,8 @@ export default function DocumentEditor({ content, onChange }) {
       TaskItem.configure({ nested: true }),
       ResizableImage,
       FindReplace,
+      HeadingRule,
+      TableColumns,
     ],
     content: migrateImageContent(content) || { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
@@ -90,8 +94,9 @@ export default function DocumentEditor({ content, onChange }) {
 
   return (
     <div className="document-print-area">
-      {/* Per-document print page size; margin handled by the sheet padding. */}
-      <style>{`@media print { @page { size: ${page.pageSize}; margin: 0; } }`}</style>
+      {/* Per-document print geometry: real @page size + margins so every printed
+          page is margined (the sheet's screen padding is zeroed in print). */}
+      <style>{`@media print { @page { size: ${page.pageSize}; margin: ${MARGIN_IN[page.margin] || '1in'}; } }`}</style>
 
       <div className="editor-chrome rounded-t-xl border border-b-0 border-sky-100 bg-white">
         <div className="flex flex-wrap items-center gap-2 border-b border-sky-100 px-3 py-1.5 text-sm text-slate-600">

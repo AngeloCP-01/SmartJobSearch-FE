@@ -41,3 +41,7 @@ export const MARGINS = [
 ];
 export const PAGE_WIDTH_CLASS = { Letter: 'w-[8.5in]', A4: 'w-[210mm]' };
 export const MARGIN_PAD_CLASS = { Normal: 'p-[1in]', Narrow: 'p-[0.5in]', Wide: 'p-[1.5in]' };
+// Same margins as MARGIN_PAD_CLASS, as @page margin values for print (applied to
+// every printed page, so interior page breaks get real margins too — the on-screen
+// sheet padding only margins the first/last page).
+export const MARGIN_IN = { Normal: '1in', Narrow: '0.5in', Wide: '1.5in' };

@@ -7,9 +7,29 @@ import { generateJSON } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
+import { HeadingRule } from '../components/extensions/headingRule';
+import { TableColumns } from '../components/extensions/tableColumns';
 
-const extensions = [StarterKit, Link, Underline];
+export const editorImportExtensions = [
+  // Match DocumentEditor's heading levels so a Word h4-h6 doesn't silently
+  // downgrade to h1 on load (the editor only knows levels 1-3).
+  StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+  Link,
+  Underline,
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  Table,
+  TableRow,
+  TableHeader,
+  TableCell,
+  HeadingRule,
+  TableColumns,
+];
 
 export function htmlToProseMirrorDoc(html) {
-  return generateJSON(String(html ?? ''), extensions);
+  return generateJSON(String(html ?? ''), editorImportExtensions);
 }
