@@ -12,6 +12,10 @@ export async function generateCoverLetter({ applicationId, documentId }) {
   const { data } = await api.post('/analysis/cover-letter', { applicationId, documentId });
   return data;
 }
+export async function tailorResume({ applicationId, documentId }) {
+  const { data } = await api.post('/analysis/tailor', { applicationId, documentId });
+  return data;
+}
 export async function listAnalyses() {
   const { data } = await api.get('/analysis');
   return data;

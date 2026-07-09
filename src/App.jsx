@@ -20,6 +20,7 @@ const Documents = lazy(() => import('./pages/Documents'));
 const Activity = lazy(() => import('./pages/Activity'));
 const Analysis = lazy(() => import('./pages/Analysis'));
 const CoverLetter = lazy(() => import('./pages/CoverLetter'));
+const TailorResume = lazy(() => import('./pages/TailorResume'));
 const Applications = lazy(() => import('./pages/Applications'));
 const Interviews = lazy(() => import('./pages/Interviews'));
 const EditorDocument = lazy(() => import('./pages/EditorDocument'));
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/activity" element={<Activity />} />
           <Route path="/analysis" element={<Analysis />} />
           <Route path="/cover-letter" element={<CoverLetter />} />
+          <Route path="/tailor" element={<TailorResume />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/interviews" element={<Interviews />} />
           <Route path="/editor" element={<Editor />} />
