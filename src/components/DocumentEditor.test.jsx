@@ -42,3 +42,18 @@ test('seeds the sheet from existing page attributes in content', async () => {
   expect(await screen.findByLabelText('Page size')).toHaveValue('A4');
   expect(document.querySelector('.editor-sheet')).toHaveClass('w-[210mm]', 'p-[1.5in]');
 });
+
+it('renders the tailoring panel when tailoring is provided', async () => {
+  const tailoring = {
+    meta: { position: 'Backend Engineer' },
+    suggestions: [{ kind: 'rephrase', text: 'Use "architected".', why: 'Stronger.', groundedIn: 'this résumé', anchor: 'built', severity: 'low' }],
+  };
+  render(<DocumentEditor content={{ type: 'doc', content: [] }} onChange={() => {}} tailoring={tailoring} />);
+  expect(await screen.findByText('Tailoring suggestions')).toBeInTheDocument();
+});
+
+it('renders no tailoring panel by default', async () => {
+  render(<DocumentEditor content={{ type: 'doc', content: [] }} onChange={() => {}} />);
+  expect(await screen.findByLabelText('Page size')).toBeInTheDocument(); // editor mounted
+  expect(screen.queryByText('Tailoring suggestions')).not.toBeInTheDocument();
+});

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Printer, Check, Loader2, TriangleAlert, Save } from 'lucide-react';
 import { getAuthoredDocument, updateAuthoredDocument } from '../api/authoredDocuments';
@@ -12,7 +12,7 @@ import Spinner from '../components/Spinner';
 // Because it mounts already-seeded with real data, useAutosave's first-run
 // guard catches the mount-time value and skips it — so NO spurious PATCH fires
 // on load. Only genuine user edits (title/content state changes) trigger a save.
-function EditorDocumentForm({ id, initialDoc }) {
+function EditorDocumentForm({ id, initialDoc, tailoring }) {
   const [title, setTitle] = useState(initialDoc.title);
   const [content, setContent] = useState(initialDoc.content);
 
@@ -104,7 +104,7 @@ function EditorDocumentForm({ id, initialDoc }) {
         placeholder="Untitled document"
       />
 
-      <DocumentEditor content={content} onChange={setContent} />
+      <DocumentEditor content={content} onChange={setContent} tailoring={tailoring} />
     </div>
   );
 }
@@ -113,6 +113,8 @@ function EditorDocumentForm({ id, initialDoc }) {
 // to the form only after the document is available. Does NOT call useAutosave.
 export default function EditorDocument() {
   const { id } = useParams();
+  const location = useLocation();
+  const tailoring = location.state?.tailoring || null;
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['authored-document', id],
@@ -130,5 +132,5 @@ export default function EditorDocument() {
 
   if (!data) return null;
 
-  return <EditorDocumentForm id={id} initialDoc={data} />;
+  return <EditorDocumentForm id={id} initialDoc={data} tailoring={tailoring} />;
 }
