@@ -11,3 +11,6 @@ build/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# SDD scratch (briefs/reports/review packages/progress ledger)
+.superpowers/
