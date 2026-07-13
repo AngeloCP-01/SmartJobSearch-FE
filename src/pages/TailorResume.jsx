@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wand2, Copy, Check, Save, Sparkles } from 'lucide-react';
+import { Wand2, Copy, Check, Save, Sparkles, SquarePen } from 'lucide-react';
 import { listApplications, getApplication } from '../api/applications';
 import { listDocuments, createDocument, linkDocument } from '../api/documents';
 import { getAnalysisConfig, tailorResume } from '../api/analysis';
+import { fetchEditorContent } from '../lib/openDocumentInEditor';
+import { createAuthoredDocument } from '../api/authoredDocuments';
 import Button from '../components/Button';
 
 const selectClass = 'rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500';
@@ -26,6 +29,7 @@ function notesFilename(position) {
 
 export default function TailorResume() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [applicationId, setApplicationId] = useState('');
   const [documentId, setDocumentId] = useState('');
   const [suggestions, setSuggestions] = useState(null);
@@ -72,6 +76,29 @@ export default function TailorResume() {
       if (applicationId) qc.invalidateQueries({ queryKey: ['application', applicationId] });
     },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not save the notes to Documents.'),
+  });
+
+  const draft = useMutation({
+    mutationFn: async () => {
+      const doc = documents.find((d) => d.id === documentId);
+      const { ok, content } = await fetchEditorContent(documentId, doc?.originalFilename);
+      if (!ok) {
+        const e = new Error('no-text');
+        e.friendly = 'No selectable text found in this résumé (it may be scanned or image-only).';
+        throw e;
+      }
+      return createAuthoredDocument({
+        title: `Tailored Résumé — ${meta?.position || 'Untitled'}`,
+        type: 'Resume',
+        content,
+        applicationId: applicationId || undefined,
+      });
+    },
+    onSuccess: (created) => {
+      setError(null);
+      navigate(`/editor/${created.id}`, { state: { tailoring: { suggestions, meta } } });
+    },
+    onError: (e) => setError(e.friendly || 'Could not open the résumé in the editor.'),
   });
 
   function onGenerate(e) {
@@ -130,6 +157,9 @@ export default function TailorResume() {
               </Button>
               <Button type="button" onClick={() => saveDoc.mutate()} loading={saveDoc.isPending}>
                 {saved ? <Check size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />} {saved ? 'Saved' : 'Save to Documents'}
+              </Button>
+              <Button type="button" onClick={() => draft.mutate()} loading={draft.isPending} disabled={suggestions.length === 0}>
+                <SquarePen size={16} aria-hidden="true" /> Draft in Editor
               </Button>
             </div>
           </div>
