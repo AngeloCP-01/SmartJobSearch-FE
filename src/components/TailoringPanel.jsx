@@ -20,8 +20,14 @@ export default function TailoringPanel({ editor, tailoring, onClose }) {
 
   const locate = (s, id) => {
     if (!s.anchor) { setMissId(id); return; }
-    editor.chain().setSearchTerm(s.anchor).findNext().run();
+    // Two SEPARATE dispatches, not one chain: findNext must run against the match
+    // set that setSearchTerm just produced. Chained in a single transaction,
+    // findNext reads the PREVIOUS term's (stale) matches, so the second and later
+    // locate clicks never move the highlight. Separate commands let editor.state
+    // update between them.
+    editor.commands.setSearchTerm(s.anchor);
     const found = (searchKey.getState(editor.state)?.matches.length || 0) > 0;
+    if (found) editor.commands.findNext();
     setMissId(found ? null : id);
   };
   const close = () => { editor.chain().clearSearch().run(); onClose?.(); };

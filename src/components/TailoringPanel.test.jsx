@@ -7,14 +7,24 @@ vi.mock('./extensions/findReplace', () => ({
   searchKey: { getState: vi.fn(() => ({ matches: [{ from: 1, to: 5 }] })) },
 }));
 
+// Record command calls and chain calls SEPARATELY. locate() must drive the
+// editor via editor.commands (two separate dispatches) — NOT editor.chain() —
+// because chaining setSearchTerm+findNext makes findNext read the previous
+// term's stale matches, so repeat locate clicks stop moving the highlight
+// (caught in manual e2e, 2026-07-13). Asserting on commandCalls guards that.
 function makeEditor() {
-  const calls = [];
+  const commandCalls = [];
+  const chainCalls = [];
   const chain = {};
   ['setSearchTerm', 'findNext', 'clearSearch'].forEach((m) => {
-    chain[m] = (...a) => { calls.push([m, ...a]); return chain; };
+    chain[m] = (...a) => { chainCalls.push([m, ...a]); return chain; };
   });
   chain.run = () => {};
-  return { editor: { chain: () => chain, state: {} }, calls };
+  const commands = {};
+  ['setSearchTerm', 'findNext', 'clearSearch'].forEach((m) => {
+    commands[m] = (...a) => { commandCalls.push([m, ...a]); return true; };
+  });
+  return { editor: { chain: () => chain, commands, state: {} }, commandCalls, chainCalls };
 }
 
 const tailoring = {
@@ -34,12 +44,14 @@ describe('TailoringPanel', () => {
     expect(screen.getByText(/Notes/i)).toBeInTheDocument(); // notes group header
   });
 
-  it('locates a suggestion by its anchor on click', () => {
-    const { editor, calls } = makeEditor();
+  it('locates a suggestion via separate commands (setSearchTerm then findNext)', () => {
+    const { editor, commandCalls, chainCalls } = makeEditor();
     render(<TailoringPanel editor={editor} tailoring={tailoring} onClose={() => {}} />);
     fireEvent.click(screen.getByText('Use "architected".'));
-    expect(calls).toContainEqual(['setSearchTerm', 'built REST APIs']);
-    expect(calls).toContainEqual(['findNext']);
+    // Must be two separate commands, in order — not a single chain (regression guard).
+    expect(commandCalls[0]).toEqual(['setSearchTerm', 'built REST APIs']);
+    expect(commandCalls[1]).toEqual(['findNext']);
+    expect(chainCalls).not.toContainEqual(['setSearchTerm', 'built REST APIs']);
   });
 
   it('shows a hint when the anchor cannot be located', () => {
@@ -51,11 +63,11 @@ describe('TailoringPanel', () => {
   });
 
   it('clears the search when closed', () => {
-    const { editor, calls } = makeEditor();
+    const { editor, chainCalls } = makeEditor();
     const onClose = vi.fn();
     render(<TailoringPanel editor={editor} tailoring={tailoring} onClose={onClose} />);
     fireEvent.click(screen.getByLabelText('Close suggestions'));
-    expect(calls).toContainEqual(['clearSearch']);
+    expect(chainCalls).toContainEqual(['clearSearch']);
     expect(onClose).toHaveBeenCalled();
   });
 });
