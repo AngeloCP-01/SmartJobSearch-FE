@@ -25,6 +25,7 @@ import { FindReplace } from './extensions/findReplace';
 import { HeadingRule } from './extensions/headingRule';
 import { TableColumns } from './extensions/tableColumns';
 import FindReplacePanel from './FindReplacePanel';
+import TailoringPanel from './TailoringPanel';
 import { PAGE_SIZES, MARGINS, PAGE_WIDTH_CLASS, MARGIN_PAD_CLASS, MARGIN_IN } from './editorConstants';
 
 function pageOf(content) {
@@ -34,9 +35,10 @@ function pageOf(content) {
   };
 }
 
-export default function DocumentEditor({ content, onChange }) {
+export default function DocumentEditor({ content, onChange, tailoring }) {
   const [page, setPage] = useState(() => pageOf(content));
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showTailoring, setShowTailoring] = useState(Boolean(tailoring));
 
   const editor = useEditor({
     extensions: [
@@ -128,8 +130,13 @@ export default function DocumentEditor({ content, onChange }) {
       </div>
 
       <div className="editor-canvas-backdrop rounded-b-xl border border-t-0 border-sky-100 bg-slate-100 p-6">
-        <div className={sheetClass}>
-          <EditorContent editor={editor} />
+        <div className={tailoring && showTailoring ? 'flex flex-wrap items-start gap-4' : ''}>
+          <div className={sheetClass}>
+            <EditorContent editor={editor} />
+          </div>
+          {tailoring && showTailoring && (
+            <TailoringPanel editor={editor} tailoring={tailoring} onClose={() => setShowTailoring(false)} />
+          )}
         </div>
       </div>
 
