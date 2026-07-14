@@ -26,13 +26,6 @@ const Interviews = lazy(() => import('./pages/Interviews'));
 const EditorDocument = lazy(() => import('./pages/EditorDocument'));
 const Editor = lazy(() => import('./pages/Editor'));
 
-// TEMPORARY — remove after verifying Sentry in prod. Throws during render so the
-// page-level ErrorBoundary in Layout catches it (sidebar survives) AND Sentry
-// captures the event, proving init + capture + source maps end-to-end.
-function DebugBoom() {
-  throw new Error('Sentry FE wiring test');
-}
-
 export default function App() {
   return (
     <AuthProvider>
@@ -55,7 +48,6 @@ export default function App() {
           <Route path="/interviews" element={<Interviews />} />
           <Route path="/editor" element={<Editor />} />
           <Route path="/editor/:id" element={<EditorDocument />} />
-          <Route path="/debug/boom" element={<DebugBoom />} /> {/* TEMPORARY — remove after Sentry verification */}
         </Route>
       </Routes>
     </AuthProvider>
