@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import AppErrorBoundary from './AppErrorBoundary';
 import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, PenLine, SquarePen, CalendarClock, LogOut, Briefcase, Wand2 } from 'lucide-react';
 import { useQuery, useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
@@ -72,6 +73,7 @@ function NavLinks({ onNavigate, reminderCount = 0 }) {
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { pathname } = useLocation();
   const { data: reminders } = useQuery({ queryKey: ['reminders'], queryFn: fetchReminders });
   const reminderCount = reminders?.counts?.total ?? 0;
   return (
@@ -113,9 +115,11 @@ export default function Layout() {
       </header>
 
       <main id="main" className="flex-1 p-5 md:p-8">
-        <Suspense fallback={<Spinner center />}>
-          <Outlet />
-        </Suspense>
+        <AppErrorBoundary key={pathname} variant="page">
+          <Suspense fallback={<Spinner center />}>
+            <Outlet />
+          </Suspense>
+        </AppErrorBoundary>
       </main>
     </div>
   );
