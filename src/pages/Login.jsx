@@ -41,7 +41,7 @@ export default function Login() {
         </div>
         <form onSubmit={onSubmit} noValidate>
           <Field label="Email" name="email" type="email" value={email} onChange={setEmail} required autoComplete="email" />
-          <Field label="Password" name="password" type="password" value={password} onChange={setPassword} required autoComplete="current-password" />
+          <Field label="Password" name="password" type="password" value={password} onChange={setPassword} required autoComplete="current-password" revealable />
           <label className="mb-4 flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"

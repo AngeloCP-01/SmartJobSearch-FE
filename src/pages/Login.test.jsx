@@ -12,7 +12,7 @@ test('logging in stores the session and navigates to the dashboard', async () =>
   );
   renderWithProviders(<App />, { route: '/login' });
   await userEvent.type(screen.getByLabelText(/email/i), 'ada@x.com');
-  await userEvent.type(screen.getByLabelText(/password/i), 'Password123');
+  await userEvent.type(screen.getByLabelText(/password/i, { selector: 'input' }), 'Password123');
   await userEvent.click(screen.getByRole('button', { name: /log in/i }));
   await waitFor(() => expect(screen.getByRole('heading', { name: /Dashboard/i })).toBeInTheDocument());
 });
@@ -29,7 +29,7 @@ test('keep me logged in is checked by default and sent as rememberMe', async () 
   renderWithProviders(<App />, { route: '/login' });
   expect(screen.getByRole('checkbox', { name: /keep me logged in/i })).toBeChecked();
   await userEvent.type(screen.getByLabelText(/email/i), 'ada@x.com');
-  await userEvent.type(screen.getByLabelText(/password/i), 'Password123');
+  await userEvent.type(screen.getByLabelText(/password/i, { selector: 'input' }), 'Password123');
   await userEvent.click(screen.getByRole('button', { name: /log in/i }));
   await waitFor(() => expect(body).toMatchObject({ rememberMe: true }));
 });
@@ -46,7 +46,7 @@ test('unchecking keep me logged in sends rememberMe false', async () => {
   renderWithProviders(<App />, { route: '/login' });
   await userEvent.click(screen.getByRole('checkbox', { name: /keep me logged in/i }));
   await userEvent.type(screen.getByLabelText(/email/i), 'ada@x.com');
-  await userEvent.type(screen.getByLabelText(/password/i), 'Password123');
+  await userEvent.type(screen.getByLabelText(/password/i, { selector: 'input' }), 'Password123');
   await userEvent.click(screen.getByRole('button', { name: /log in/i }));
   await waitFor(() => expect(body).toMatchObject({ rememberMe: false }));
 });
@@ -66,12 +66,24 @@ test('the "Try the demo" button logs in with the demo account', async () => {
   await waitFor(() => expect(screen.getByRole('heading', { name: /Dashboard/i })).toBeInTheDocument());
 });
 
+test('password field can be toggled between hidden and visible', async () => {
+  renderWithProviders(<App />, { route: '/login' });
+  const input = screen.getByLabelText(/password/i, { selector: 'input' });
+  expect(input).toHaveAttribute('type', 'password');
+
+  await userEvent.click(screen.getByRole('button', { name: /show password/i }));
+  expect(input).toHaveAttribute('type', 'text');
+
+  await userEvent.click(screen.getByRole('button', { name: /hide password/i }));
+  expect(input).toHaveAttribute('type', 'password');
+});
+
 test('shows the API error message on bad credentials', async () => {
   server.use(http.post(`${API}/auth/login`, () =>
     HttpResponse.json({ error: { message: 'Invalid credentials', code: 'UNAUTHORIZED' } }, { status: 401 })));
   renderWithProviders(<App />, { route: '/login' });
   await userEvent.type(screen.getByLabelText(/email/i), 'ada@x.com');
-  await userEvent.type(screen.getByLabelText(/password/i), 'wrong');
+  await userEvent.type(screen.getByLabelText(/password/i, { selector: 'input' }), 'wrong');
   await userEvent.click(screen.getByRole('button', { name: /log in/i }));
   await waitFor(() => expect(screen.getByText(/Invalid credentials/i)).toBeInTheDocument());
 });

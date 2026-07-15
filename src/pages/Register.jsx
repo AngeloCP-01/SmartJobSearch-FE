@@ -40,7 +40,7 @@ export default function Register() {
         <form onSubmit={onSubmit} noValidate>
           <Field label="Name" name="name" value={name} onChange={setName} required autoComplete="name" />
           <Field label="Email" name="email" type="email" value={email} onChange={setEmail} required autoComplete="email" />
-          <Field label="Password" name="password" type="password" value={password} onChange={setPassword} required autoComplete="new-password" />
+          <Field label="Password" name="password" type="password" value={password} onChange={setPassword} required autoComplete="new-password" revealable />
           {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
           <Button type="submit" className="w-full" disabled={busy}>{busy ? 'Creating…' : 'Register'}</Button>
         </form>
