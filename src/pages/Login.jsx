@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useDemoLogin } from '../lib/demo';
 import Field from '../components/Field';
 import Button from '../components/Button';
+import PrivacyPolicyModal from '../components/PrivacyPolicyModal';
 
 export default function Login() {
   const { login } = useAuth();
@@ -15,6 +16,7 @@ export default function Login() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -66,7 +68,13 @@ export default function Login() {
         <p className="mt-5 text-sm text-slate-600">
           No account? <Link className="font-medium text-sky-700 hover:underline" to="/register">Create one</Link>
         </p>
+        <p className="mt-3 text-xs text-slate-400">
+          <button type="button" onClick={() => setPrivacyOpen(true)} className="cursor-pointer hover:underline">
+            Privacy
+          </button>
+        </p>
       </div>
+      <PrivacyPolicyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </div>
   );
 }

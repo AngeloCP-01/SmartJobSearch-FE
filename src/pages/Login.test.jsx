@@ -87,3 +87,9 @@ test('shows the API error message on bad credentials', async () => {
   await userEvent.click(screen.getByRole('button', { name: /log in/i }));
   await waitFor(() => expect(screen.getByText(/Invalid credentials/i)).toBeInTheDocument());
 });
+
+test('opens the privacy modal from the login footer', async () => {
+  renderWithProviders(<App />, { route: '/login' });
+  await userEvent.click(await screen.findByRole('button', { name: /^privacy$/i }));
+  expect(screen.getByRole('dialog', { name: /privacy policy/i })).toBeInTheDocument();
+});
