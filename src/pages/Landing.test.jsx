@@ -25,3 +25,9 @@ test('"Try the live demo" signs into the demo account and lands on the dashboard
   await waitFor(() => expect(body).toMatchObject({ email: 'demo@smartjobsearch.app', rememberMe: true }));
   await waitFor(() => expect(screen.getByRole('heading', { name: /Dashboard/i })).toBeInTheDocument());
 });
+
+test('opens the privacy modal from the landing header', async () => {
+  renderWithProviders(<App />, { route: '/welcome' });
+  await userEvent.click(await screen.findByRole('button', { name: /^privacy$/i }));
+  expect(screen.getByRole('dialog', { name: /privacy policy/i })).toBeInTheDocument();
+});

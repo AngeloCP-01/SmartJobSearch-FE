@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Briefcase, KanbanSquare, ScanSearch, CalendarClock, FileText, Github, ArrowRight } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useDemoLogin } from '../lib/demo';
 import Button from '../components/Button';
+import PrivacyPolicyModal from '../components/PrivacyPolicyModal';
 
 const FE_REPO = 'https://github.com/AngeloCP-01/SmartJobSearch-FE';
 const BE_REPO = 'https://github.com/AngeloCP-01/SmartJobSearch-BE';
@@ -17,6 +19,7 @@ const FEATURES = [
 export default function Landing() {
   const { status } = useAuth();
   const { tryDemo, demoBusy, demoError } = useDemoLogin();
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   if (status === 'authenticated') return <Navigate to="/" replace />;
 
   return (
@@ -34,6 +37,10 @@ export default function Landing() {
             className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 sm:inline-flex">
             <Github size={16} aria-hidden="true" /> GitHub
           </a>
+          <button type="button" onClick={() => setPrivacyOpen(true)}
+            className="cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">
+            Privacy
+          </button>
           <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Log in</Link>
         </div>
       </header>
@@ -125,6 +132,7 @@ export default function Landing() {
       <footer className="mx-auto max-w-6xl px-5 py-8 text-center text-sm text-slate-400">
         JobTrail — a portfolio project.
       </footer>
+      <PrivacyPolicyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </div>
   );
 }

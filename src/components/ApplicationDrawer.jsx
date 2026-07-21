@@ -8,6 +8,8 @@ import { listInterviews, createInterview, updateInterview, deleteInterview } fro
 import { listContacts, linkContact, unlinkContact, createContact } from '../api/contacts';
 import { listDocuments, linkDocument, unlinkDocument } from '../api/documents';
 import { fetchActivity } from '../api/activity';
+import { trackEvent } from '../observability/analytics';
+import useFocusTrap from '../hooks/useFocusTrap';
 import ActivityRow from './ActivityRow';
 import { STATUSES } from '../lib/applicationStatus';
 import { apiErrorMessage } from '../lib/apiError';
@@ -83,28 +85,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     document.addEventListener('keydown', onKey, true);
     return () => document.removeEventListener('keydown', onKey, true);
   }, [descExpanded]);
-  useEffect(() => {
-    if (!open) return undefined;
-    const node = drawerRef.current;
-    const getFocusable = () => Array.from(
-      node?.querySelectorAll(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ) || [],
-    );
-    const onKey = (e) => {
-      if (e.key === 'Escape') { onClose(); return; }
-      if (e.key !== 'Tab') return;
-      const els = getFocusable();
-      if (els.length === 0) return;
-      const first = els[0];
-      const last = els[els.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    };
-    node?.addEventListener('keydown', onKey);
-    getFocusable()[0]?.focus();
-    return () => node?.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useFocusTrap(drawerRef, open, onClose);
 
   const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => listCompanies(), enabled: open });
   const { data: interviews = [] } = useQuery({
@@ -168,7 +149,12 @@ export default function ApplicationDrawer({ application, open, onClose }) {
 
   const save = useMutation({
     mutationFn: (body) => (isEdit ? updateApplication(application.id, body) : createApplication(body)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); qc.invalidateQueries({ queryKey: ['activity'] }); onClose(); },
+    onSuccess: () => {
+      if (!isEdit) trackEvent('application_created'); // guard: this mutation also handles edits
+      qc.invalidateQueries({ queryKey: ['applications'] });
+      qc.invalidateQueries({ queryKey: ['activity'] });
+      onClose();
+    },
     onError: (e) => setError(apiErrorMessage(e, 'Could not save')),
   });
 

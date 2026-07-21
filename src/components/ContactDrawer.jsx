@@ -4,6 +4,7 @@ import { X, Trash2 } from 'lucide-react';
 import { listCompanies, createCompany } from '../api/companies';
 import { createContact, updateContact, deleteContact } from '../api/contacts';
 import { apiErrorMessage } from '../lib/apiError';
+import useFocusTrap from '../hooks/useFocusTrap';
 import Field from './Field';
 import Button from './Button';
 
@@ -36,28 +37,7 @@ export default function ContactDrawer({ contact, open, onClose }) {
   const drawerRef = useRef(null);
 
   useEffect(() => { setForm(initialForm(contact)); setError(null); }, [contact, open]);
-  useEffect(() => {
-    if (!open) return undefined;
-    const node = drawerRef.current;
-    const getFocusable = () => Array.from(
-      node?.querySelectorAll(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ) || [],
-    );
-    const onKey = (e) => {
-      if (e.key === 'Escape') { onClose(); return; }
-      if (e.key !== 'Tab') return;
-      const els = getFocusable();
-      if (els.length === 0) return;
-      const first = els[0];
-      const last = els[els.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    };
-    node?.addEventListener('keydown', onKey);
-    getFocusable()[0]?.focus();
-    return () => node?.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useFocusTrap(drawerRef, open, onClose);
 
   const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => listCompanies(), enabled: open });
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));

@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../auth/AuthContext';
@@ -73,4 +74,11 @@ test('shows a badge with the reminders count', async () => {
   })));
   renderLayout();
   await waitFor(() => expect(screen.getAllByLabelText('3 reminders').length).toBeGreaterThan(0));
+});
+
+test('opens the privacy policy modal from the footer trigger', async () => {
+  const userEventInstance = userEvent.setup();
+  renderLayout();
+  await userEventInstance.click(screen.getByRole('button', { name: /^privacy$/i }));
+  expect(await screen.findByRole('dialog', { name: /privacy policy/i })).toBeInTheDocument();
 });
