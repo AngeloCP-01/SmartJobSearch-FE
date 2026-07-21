@@ -73,9 +73,10 @@ Lives alongside `sentry.js` and `chunkReload.js`, following the existing `src/ob
 
 | Export | Purpose |
 |---|---|
-| `<WebVitals />` | Renders `<Analytics/>` + `<SpeedInsights/>`, both with the normalized `route` |
+| `<WebVitals />` | Renders `<Analytics/>` + `<SpeedInsights/>` with normalization applied to each (see below) |
 | `trackEvent(name, props)` | Thin wrapper over `track()` |
 | `normalizeRoute(pathname)` | Pure function, exported for testing |
+| `normalizeAnalyticsUrl(url)` | Pure function — applies `normalizeRoute` to a full URL's pathname |
 
 `trackEvent` mirrors the indirection `captureError` already provides over Sentry: call sites never import the vendor SDK directly, so the analytics provider stays swappable and the call sites stay testable.
 
@@ -86,6 +87,15 @@ Lives alongside `sentry.js` and `chunkReload.js`, following the existing `src/ob
 For React/Vite, Vercel does **not** auto-populate the `route` prop (it does for Next.js, Nuxt, SvelteKit, and Remix). Without it, every document ID becomes its own dashboard row and burns quota.
 
 `normalizeRoute` maps `/editor/<anything>` → `/editor/[id]` and passes everything else through unchanged. A pure `pathname → string` function, kept separate from the component so it can be unit-tested without rendering.
+
+**The two products take normalization through different APIs** — this asymmetry is easy to get wrong:
+
+| Product | Mechanism |
+|---|---|
+| `<SpeedInsights/>` | `route` prop — `route={normalizeRoute(pathname)}` |
+| `<Analytics/>` | **`beforeSend` hook** — the React build exposes no `route` prop; the pageview URL is rewritten via `beforeSend={(e) => ({ ...e, url: normalizeAnalyticsUrl(e.url) })}` |
+
+`normalizeAnalyticsUrl` parses the full URL, applies `normalizeRoute` to its pathname, and returns the rebuilt URL string — preserving origin and query string.
 
 Two notes:
 - The layout route at `App.jsx:36` is pathless, not parameterized — it needs no handling.
