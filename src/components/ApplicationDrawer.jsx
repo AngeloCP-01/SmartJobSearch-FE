@@ -8,6 +8,7 @@ import { listInterviews, createInterview, updateInterview, deleteInterview } fro
 import { listContacts, linkContact, unlinkContact, createContact } from '../api/contacts';
 import { listDocuments, linkDocument, unlinkDocument } from '../api/documents';
 import { fetchActivity } from '../api/activity';
+import { trackEvent } from '../observability/analytics';
 import ActivityRow from './ActivityRow';
 import { STATUSES } from '../lib/applicationStatus';
 import { apiErrorMessage } from '../lib/apiError';
@@ -168,7 +169,12 @@ export default function ApplicationDrawer({ application, open, onClose }) {
 
   const save = useMutation({
     mutationFn: (body) => (isEdit ? updateApplication(application.id, body) : createApplication(body)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); qc.invalidateQueries({ queryKey: ['activity'] }); onClose(); },
+    onSuccess: () => {
+      if (!isEdit) trackEvent('application_created'); // guard: this mutation also handles edits
+      qc.invalidateQueries({ queryKey: ['applications'] });
+      qc.invalidateQueries({ queryKey: ['activity'] });
+      onClose();
+    },
     onError: (e) => setError(apiErrorMessage(e, 'Could not save')),
   });
 

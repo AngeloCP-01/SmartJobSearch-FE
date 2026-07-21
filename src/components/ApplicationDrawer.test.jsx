@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server, API } from '../test/server';
 import ApplicationDrawer from './ApplicationDrawer';
+import { trackEvent } from '../observability/analytics';
+
+vi.mock('../observability/analytics', () => ({ trackEvent: vi.fn() }));
 
 function renderDrawer(props = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -20,6 +23,7 @@ const app = {
 };
 
 beforeEach(() => {
+  trackEvent.mockClear();
   server.use(
     http.get(`${API}/companies`, () => HttpResponse.json([{ id: 'c1', name: 'Acme' }])),
     http.get(`${API}/interviews`, () => HttpResponse.json([])),
@@ -83,6 +87,34 @@ test('create mode POSTs a new application', async () => {
   await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
   await waitFor(() => expect(onClose).toHaveBeenCalled());
   expect(body.position).toBe('Frontend Eng');
+});
+
+test('fires application_created when saving a new application', async () => {
+  server.use(http.post(`${API}/applications`, () => HttpResponse.json({ ...app, id: 'new1' }, { status: 201 })));
+  renderDrawer();
+
+  await userEvent.type(screen.getByLabelText(/position/i), 'Backend Engineer');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('application_created'));
+});
+
+test('does NOT fire application_created when saving an edit', async () => {
+  server.use(http.patch(`${API}/applications/a1`, async ({ request }) => (
+    HttpResponse.json({ ...app, ...(await request.json()), company: null })
+  )));
+  const onClose = vi.fn();
+  renderDrawer({ application: app, onClose });
+
+  await waitFor(() => expect(screen.getByLabelText(/position/i)).toHaveValue('Backend Eng'));
+  await userEvent.clear(screen.getByLabelText(/position/i));
+  await userEvent.type(screen.getByLabelText(/position/i), 'Senior Backend Eng');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  // Waiting on onClose proves the save actually completed — without this the
+  // "no event" assertion could pass simply because nothing had happened yet.
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  expect(trackEvent).not.toHaveBeenCalled();
 });
 
 test('blocks save when salary min exceeds max', async () => {
