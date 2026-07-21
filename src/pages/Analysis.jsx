@@ -6,6 +6,7 @@ import { listDocuments } from '../api/documents';
 import { runAnalysis, listAnalyses, getAnalysis, deleteAnalysis, getAnalysisConfig } from '../api/analysis';
 import AnalysisReport from '../components/AnalysisReport';
 import Button from '../components/Button';
+import { trackEvent } from '../observability/analytics';
 
 const selectClass = 'rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500';
 
@@ -51,6 +52,7 @@ export default function Analysis() {
   function onRun(e) {
     e.preventDefault();
     if (!applicationId || !documentId) { setError('Pick an application and a résumé.'); return; }
+    trackEvent('ai_analysis_run', { ai: useAi && aiAvailable });
     run.mutate();
   }
 

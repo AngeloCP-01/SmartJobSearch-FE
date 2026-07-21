@@ -5,6 +5,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { server, API } from '../test/server';
 import Analysis from './Analysis';
+import { trackEvent } from '../observability/analytics';
+
+vi.mock('../observability/analytics', () => ({ trackEvent: vi.fn() }));
+
+beforeEach(() => { trackEvent.mockClear(); });
 
 const REPORT = {
   meta: { documentName: 'Backend Resume', position: 'Backend Engineer', jdPresent: true, extractionOk: true, wordCount: 600 },
@@ -117,4 +122,34 @@ test('with AI available, checking the toggle posts useAi:true and shows the AI b
   await userEvent.click(screen.getByRole('button', { name: /run analysis/i }));
   await waitFor(() => expect(postedUseAi).toBe(true));
   await waitFor(() => expect(screen.getByText(/AI-assisted match/i)).toBeInTheDocument());
+});
+
+test('fires ai_analysis_run on submit with the ai flag', async () => {
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' })),
+    http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
+    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.post(`${API}/analysis`, () => HttpResponse.json({ id: 'an1', atsScore: 82, matchScore: 67, report: REPORT, createdAt: new Date().toISOString() }, { status: 201 })),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByRole('option', { name: /Backend Engineer/ })).toBeInTheDocument());
+  await userEvent.selectOptions(screen.getByLabelText(/application/i), 'a1');
+  await userEvent.selectOptions(screen.getByLabelText(/résumé|resume/i), 'd1');
+  await userEvent.click(screen.getByRole('button', { name: /run analysis/i }));
+
+  expect(trackEvent).toHaveBeenCalledWith('ai_analysis_run', { ai: false });
+});
+
+test('does not fire ai_analysis_run when validation blocks the submit', async () => {
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API}/documents`, () => HttpResponse.json([])),
+    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+  );
+  renderPage();
+  await userEvent.click(screen.getByRole('button', { name: /run analysis/i }));
+
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/pick an application/i));
+  expect(trackEvent).not.toHaveBeenCalled();
 });
