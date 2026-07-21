@@ -153,3 +153,21 @@ test('does not fire ai_analysis_run when validation blocks the submit', async ()
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/pick an application/i));
   expect(trackEvent).not.toHaveBeenCalled();
 });
+
+test('still fires ai_analysis_run when the run fails, since failure volume is a useful signal', async () => {
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
+    http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' })),
+    http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
+    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.post(`${API}/analysis`, () => HttpResponse.json({ error: { message: 'boom', code: 'X' } }, { status: 500 })),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByRole('option', { name: /Backend Engineer/ })).toBeInTheDocument());
+  await userEvent.selectOptions(screen.getByLabelText(/application/i), 'a1');
+  await userEvent.selectOptions(screen.getByLabelText(/résumé|resume/i), 'd1');
+  await userEvent.click(screen.getByRole('button', { name: /run analysis/i }));
+
+  await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+  expect(trackEvent).toHaveBeenCalledWith('ai_analysis_run', { ai: false });
+});
