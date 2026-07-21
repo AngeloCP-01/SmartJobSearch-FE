@@ -511,17 +511,193 @@ event would also fire on every edit and silently inflate the metric."
 
 ---
 
-### Task 5: Privacy policy modal
+### Task 5: Extract `useFocusTrap` hook
+
+**Files:**
+- Create: `src/hooks/useFocusTrap.js`
+- Test: `src/hooks/useFocusTrap.test.jsx`
+- Modify: `src/components/ContactDrawer.jsx` (remove its inline focus-trap effect)
+- Modify: `src/components/ApplicationDrawer.jsx` (remove its inline focus-trap effect)
+
+**Interfaces:**
+- Consumes: nothing
+- Produces: `useFocusTrap(ref, active, onEscape)` — default export from `src/hooks/useFocusTrap.js`. `ref` is a React ref to the dialog node, `active` is a boolean (the drawer/modal's `open`), `onEscape` is called on the Escape key.
+
+**Why this task exists:** `ContactDrawer` and `ApplicationDrawer` each carry an identical ~20-line Escape + focus-trap effect. Task 6 needs the same behavior; adding a third copy would entrench the duplication. `src/hooks/` already exists (`useAutosave.js`), so a hook is the idiomatic home.
+
+This is a **pure refactor** for the two existing drawers — no behavior change. Their existing test files are the regression net; both must stay green without modification.
+
+- [ ] **Step 1: Read both existing implementations and confirm they are identical**
+
+Run: `diff <(sed -n '/const node = drawerRef.current/,/removeEventListener/p' src/components/ContactDrawer.jsx) <(sed -n '/const node = drawerRef.current/,/removeEventListener/p' src/components/ApplicationDrawer.jsx)`
+
+Expected: no output (identical), or only whitespace/ref-name differences. **If the blocks differ meaningfully, stop and report** — the divergence is a behavioral difference the hook must preserve, and this plan assumed there was none.
+
+- [ ] **Step 2: Write the failing test**
+
+Create `src/hooks/useFocusTrap.test.jsx`:
+
+```jsx
+import { useRef } from 'react';
+import { expect, test, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import useFocusTrap from './useFocusTrap';
+
+function Harness({ active = true, onEscape = () => {} }) {
+  const ref = useRef(null);
+  useFocusTrap(ref, active, onEscape);
+  if (!active) return null;
+  return (
+    <div ref={ref} role="dialog" aria-label="Harness">
+      <button type="button">first</button>
+      <button type="button">middle</button>
+      <button type="button">last</button>
+    </div>
+  );
+}
+
+test('focuses the first focusable element when activated', () => {
+  render(<Harness />);
+  expect(screen.getByRole('button', { name: 'first' })).toHaveFocus();
+});
+
+test('calls onEscape when Escape is pressed', async () => {
+  const onEscape = vi.fn();
+  const user = userEvent.setup();
+  render(<Harness onEscape={onEscape} />);
+  await user.keyboard('{Escape}');
+  expect(onEscape).toHaveBeenCalledTimes(1);
+});
+
+test('wraps focus forward from the last element to the first', async () => {
+  const user = userEvent.setup();
+  render(<Harness />);
+  screen.getByRole('button', { name: 'last' }).focus();
+  await user.tab();
+  expect(screen.getByRole('button', { name: 'first' })).toHaveFocus();
+});
+
+test('wraps focus backward from the first element to the last', async () => {
+  const user = userEvent.setup();
+  render(<Harness />);
+  screen.getByRole('button', { name: 'first' }).focus();
+  await user.tab({ shift: true });
+  expect(screen.getByRole('button', { name: 'last' })).toHaveFocus();
+});
+
+test('does nothing when inactive', async () => {
+  const onEscape = vi.fn();
+  const user = userEvent.setup();
+  render(<Harness active={false} onEscape={onEscape} />);
+  await user.keyboard('{Escape}');
+  expect(onEscape).not.toHaveBeenCalled();
+});
+```
+
+- [ ] **Step 3: Run the test to verify it fails**
+
+Run: `npx vitest run src/hooks/useFocusTrap.test.jsx`
+Expected: FAIL — `Failed to resolve import "./useFocusTrap"`.
+
+- [ ] **Step 4: Write the hook**
+
+Create `src/hooks/useFocusTrap.js`. This is the block lifted from `ContactDrawer`, parameterized — keep the behavior byte-for-byte:
+
+```js
+import { useEffect } from 'react';
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+// Escape-to-close + tab focus trap for modal dialogs. Extracted from the
+// drawer components, which each carried an identical copy.
+export default function useFocusTrap(ref, active, onEscape) {
+  useEffect(() => {
+    if (!active) return undefined;
+    const node = ref.current;
+    const getFocusable = () => Array.from(node?.querySelectorAll(FOCUSABLE) || []);
+    const onKey = (e) => {
+      if (e.key === 'Escape') { onEscape(); return; }
+      if (e.key !== 'Tab') return;
+      const els = getFocusable();
+      if (els.length === 0) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    node?.addEventListener('keydown', onKey);
+    getFocusable()[0]?.focus();
+    return () => node?.removeEventListener('keydown', onKey);
+  }, [ref, active, onEscape]);
+}
+```
+
+- [ ] **Step 5: Run the hook test to verify it passes**
+
+Run: `npx vitest run src/hooks/useFocusTrap.test.jsx`
+Expected: PASS — 5 tests.
+
+Note the listener attaches to the dialog node (matching the drawers today), so the Escape test focuses the first button on mount and the keypress lands inside the node.
+
+- [ ] **Step 6: Refactor ContactDrawer onto the hook**
+
+In `src/components/ContactDrawer.jsx`, delete the entire `useEffect` containing the focus-trap block (the one spanning the `getFocusable`/`onKey` logic, ending at the `removeEventListener` cleanup) and replace it with a single call, placed where the effect was:
+
+```jsx
+useFocusTrap(drawerRef, open, onClose);
+```
+
+Add the import alongside the other local imports:
+
+```jsx
+import useFocusTrap from '../hooks/useFocusTrap';
+```
+
+Leave `drawerRef` and every other effect in the file alone. If `useEffect` becomes unused in the file, remove it from the React import; if other effects remain, keep it.
+
+- [ ] **Step 7: Run ContactDrawer's tests**
+
+Run: `npx vitest run src/components/ContactDrawer.test.jsx`
+Expected: PASS, unchanged. Do **not** edit this test file — it is the regression net proving the refactor changed nothing.
+
+- [ ] **Step 8: Refactor ApplicationDrawer the same way**
+
+Apply the identical change to `src/components/ApplicationDrawer.jsx`: delete the inline focus-trap `useEffect`, add the import, call `useFocusTrap(<its ref>, open, onClose);` using whatever the file already names its dialog ref.
+
+- [ ] **Step 9: Run ApplicationDrawer's tests**
+
+Run: `npx vitest run src/components/ApplicationDrawer.test.jsx`
+Expected: PASS, unchanged — including the two `application_created` tests added in Task 4.
+
+- [ ] **Step 10: Run the full suite**
+
+Run: `npm test`
+Expected: PASS. A refactor that changes no behavior must not move the count in any other file.
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add src/hooks/useFocusTrap.js src/hooks/useFocusTrap.test.jsx src/components/ContactDrawer.jsx src/components/ApplicationDrawer.jsx
+git commit -m "refactor(a11y): extract useFocusTrap from the drawer components
+
+ContactDrawer and ApplicationDrawer carried identical focus-trap
+effects. Hoisted to a hook so the privacy modal does not add a third."
+```
+
+---
+
+### Task 6: Privacy policy modal
 
 **Files:**
 - Create: `src/components/PrivacyPolicyModal.jsx`
 - Test: `src/components/PrivacyPolicyModal.test.jsx`
 
 **Interfaces:**
-- Consumes: nothing
+- Consumes: `useFocusTrap(ref, active, onEscape)` from `../hooks/useFocusTrap` (Task 5)
 - Produces: `PrivacyPolicyModal` — default export, props `{ open: boolean, onClose: () => void }`, renders `null` when `open` is false
 
-Follow the established dialog pattern from `src/components/ContactDrawer.jsx:104-119`: `if (!open) return null`, a `fixed inset-0 z-40` wrapper, a click-to-close backdrop, `role="dialog"` + `aria-modal="true"` + `aria-label`, Escape-to-close, and a focus trap. This modal is centered rather than a right-hand drawer.
+Follow the established dialog pattern from `src/components/ContactDrawer.jsx:104-119`: `if (!open) return null`, a `fixed inset-0 z-40` wrapper, a click-to-close backdrop, `role="dialog"` + `aria-modal="true"` + `aria-label`, and `useFocusTrap` for Escape + trapping. This modal is centered rather than a right-hand drawer.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -574,37 +750,16 @@ Expected: FAIL — `Failed to resolve import "./PrivacyPolicyModal"`.
 Create `src/components/PrivacyPolicyModal.jsx`:
 
 ```jsx
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { X } from 'lucide-react';
+import useFocusTrap from '../hooks/useFocusTrap';
 
 // Discloses what JobTrail collects. Cookieless analytics needs no consent
 // banner, so this is disclosure rather than a gate. Follows the dialog pattern
 // used by ContactDrawer/ApplicationDrawer (Escape + focus trap + aria-modal).
 export default function PrivacyPolicyModal({ open, onClose }) {
   const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const node = ref.current;
-    const getFocusable = () => Array.from(
-      node?.querySelectorAll(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ) || [],
-    );
-    const onKey = (e) => {
-      if (e.key === 'Escape') { onClose(); return; }
-      if (e.key !== 'Tab') return;
-      const els = getFocusable();
-      if (els.length === 0) return;
-      const first = els[0];
-      const last = els[els.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    };
-    document.addEventListener('keydown', onKey);
-    getFocusable()[0]?.focus();
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useFocusTrap(ref, open, onClose);
 
   if (!open) return null;
 
@@ -675,8 +830,6 @@ export default function PrivacyPolicyModal({ open, onClose }) {
 }
 ```
 
-Note the listener is attached to `document` rather than the dialog node so Escape works before focus lands inside — a small, deliberate divergence from `ContactDrawer`, which attaches to its own node.
-
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/components/PrivacyPolicyModal.test.jsx`
@@ -693,7 +846,7 @@ Discloses Vercel Analytics, Sentry, and the OpenRouter AI hand-off."
 
 ---
 
-### Task 6: Wire the modal triggers
+### Task 7: Wire the modal triggers
 
 **Files:**
 - Modify: `src/pages/Login.jsx` (import block; card footer after line 68)
@@ -831,7 +984,7 @@ git commit -m "feat(privacy): open privacy modal from login footer and landing h
 
 ---
 
-### Task 7: Documentation
+### Task 8: Documentation
 
 **Files:**
 - Modify: `../TASKS.md:76-78` (project root, outside this repo)
@@ -899,7 +1052,7 @@ Title it `## Real User Monitoring (JobTrail V3-22)` and cover:
 - [ ] **Step 5: Verify no repo files were touched**
 
 Run: `git status --short`
-Expected: clean. All Task 7 edits are outside this repository; if anything shows up here, it was edited by mistake.
+Expected: clean. All Task 8 edits are outside this repository; if anything shows up here, it was edited by mistake.
 
 ---
 
