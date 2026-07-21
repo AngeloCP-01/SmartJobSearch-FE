@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import AppErrorBoundary from './AppErrorBoundary';
 import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, PenLine, SquarePen, CalendarClock, LogOut, Briefcase, Wand2 } from 'lucide-react';
@@ -6,6 +6,7 @@ import { useQuery, useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
 import { fetchReminders } from '../api/reminders';
 import Spinner from './Spinner';
+import PrivacyPolicyModal from './PrivacyPolicyModal';
 
 // A thin indeterminate bar pinned to the top whenever any query or mutation is
 // in flight — one place that gives feedback for every API call across the app
@@ -76,6 +77,7 @@ export default function Layout() {
   const { pathname } = useLocation();
   const { data: reminders } = useQuery({ queryKey: ['reminders'], queryFn: fetchReminders });
   const reminderCount = reminders?.counts?.total ?? 0;
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   return (
     <div className="min-h-dvh md:flex">
       <TopProgressBar />
@@ -120,7 +122,18 @@ export default function Layout() {
             <Outlet />
           </Suspense>
         </AppErrorBoundary>
+        <footer className="mt-8 border-t border-sky-100 pt-3 text-xs text-slate-500">
+          <button
+            type="button"
+            onClick={() => setPrivacyOpen(true)}
+            className="rounded-lg cursor-pointer text-slate-500 hover:text-slate-600 hover:underline
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            Privacy
+          </button>
+        </footer>
       </main>
+      <PrivacyPolicyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </div>
   );
 }
