@@ -1,12 +1,22 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 const trackMock = vi.fn();
+let lastSpeedInsightsProps;
+let lastAnalyticsProps;
 vi.mock('@vercel/analytics', () => ({ track: trackMock }));
-vi.mock('@vercel/analytics/react', () => ({ Analytics: () => null }));
-vi.mock('@vercel/speed-insights/react', () => ({ SpeedInsights: () => null }));
+vi.mock('@vercel/analytics/react', () => ({
+  Analytics: (props) => { lastAnalyticsProps = props; return null; },
+}));
+vi.mock('@vercel/speed-insights/react', () => ({
+  SpeedInsights: (props) => { lastSpeedInsightsProps = props; return null; },
+}));
 
 afterEach(() => {
   trackMock.mockReset();
+  lastSpeedInsightsProps = undefined;
+  lastAnalyticsProps = undefined;
   vi.resetModules();
 });
 
@@ -52,6 +62,27 @@ describe('normalizeAnalyticsUrl', () => {
   test('returns the input unchanged when it is not a parseable url', async () => {
     const { normalizeAnalyticsUrl } = await import('./analytics');
     expect(normalizeAnalyticsUrl('not-a-url')).toBe('not-a-url');
+  });
+});
+
+describe('WebVitals', () => {
+  // Both vendor components silently accept the other's normalization prop (a
+  // `route` string vs. a `beforeSend` function) — swapping them would throw
+  // nothing, fail no test, and just silently degrade dashboard data. This
+  // pins the wiring: SpeedInsights gets `route`, Analytics gets `beforeSend`.
+  test('wires SpeedInsights route and Analytics beforeSend independently', async () => {
+    const { WebVitals } = await import('./analytics');
+    render(
+      <MemoryRouter initialEntries={['/editor/abc123']}>
+        <WebVitals />
+      </MemoryRouter>,
+    );
+
+    expect(lastSpeedInsightsProps.route).toBe('/editor/[id]');
+
+    expect(typeof lastAnalyticsProps.beforeSend).toBe('function');
+    expect(lastAnalyticsProps.beforeSend({ url: 'https://jobtrail.app/editor/abc123' }))
+      .toEqual({ url: 'https://jobtrail.app/editor/[id]' });
   });
 });
 

@@ -17,6 +17,15 @@ test('renders the dialog with all three data disclosures when open', () => {
   expect(dialog).toHaveTextContent(/openrouter/i);
 });
 
+test('discloses all four OpenRouter-backed AI paths, not just résumé analysis', () => {
+  render(<PrivacyPolicyModal open onClose={() => {}} />);
+  const dialog = screen.getByRole('dialog');
+  expect(dialog).toHaveTextContent(/résumé analysis/i);
+  expect(dialog).toHaveTextContent(/cover letter/i);
+  expect(dialog).toHaveTextContent(/tailoring/i);
+  expect(dialog).toHaveTextContent(/auto-fill/i);
+});
+
 test('closes via the close button', async () => {
   const onClose = vi.fn();
   const user = userEvent.setup();

@@ -93,7 +93,7 @@ For React/Vite, Vercel does **not** auto-populate the `route` prop (it does for 
 | Product | Mechanism |
 |---|---|
 | `<SpeedInsights/>` | `route` prop — `route={normalizeRoute(pathname)}` |
-| `<Analytics/>` | **`beforeSend` hook** — the React build exposes no `route` prop; the pageview URL is rewritten via `beforeSend={(e) => ({ ...e, url: normalizeAnalyticsUrl(e.url) })}` |
+| `<Analytics/>` | **`beforeSend` hook** — the React build (`@vercel/analytics` 2.0.1) does expose `route`/`path` props, but setting `route` flips on `disableAutoTrack` and requires firing pageviews manually; `beforeSend` rewrites the URL while leaving the vendor's automatic pageview tracking on: `beforeSend={(e) => ({ ...e, url: normalizeAnalyticsUrl(e.url) })}` |
 
 `normalizeAnalyticsUrl` parses the full URL, applies `normalizeRoute` to its pathname, and returns the rebuilt URL string — preserving origin and query string.
 

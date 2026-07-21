@@ -56,10 +56,15 @@ export default function PrivacyPolicyModal({ open, onClose }) {
             <section>
               <h3 className="mb-1 font-semibold text-slate-900">AI features</h3>
               <p>
-                If you run an AI résumé analysis, the résumé text and job description are sent to
-                OpenRouter for processing. Free models may be served by providers that can use
-                inputs for training — review your OpenRouter privacy settings. Analyses that do
-                not use AI stay on JobTrail&rsquo;s own servers.
+                Four features send your content to OpenRouter for AI processing: résumé analysis,
+                cover letter generation, résumé tailoring, and job-posting auto-fill. Only résumé
+                analysis has an AI toggle — the other three always use AI. Résumé analysis sends
+                your résumé text and the job description; cover letter generation sends the
+                company, role, job description, and résumé; résumé tailoring sends the job
+                description, current résumé, and evidence drawn from your other documents; and
+                auto-fill sends the posting text you paste, or a URL that the server fetches on
+                your behalf. Free models may be served by providers that can use inputs for
+                training — review your OpenRouter privacy settings.
               </p>
             </section>
 
