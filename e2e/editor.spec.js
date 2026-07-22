@@ -40,7 +40,10 @@ test('create, edit, and persist an authored document', async ({ page }) => {
   await page.getByRole('button', { name: /insert table/i }).click();
   await expect(page.locator('.tiptap table')).toBeVisible();
   await page.getByRole('button', { name: /find and replace/i }).click();
-  await page.getByLabel('Find').fill('Playwright');
+  // Scope to the textbox role: three elements carry a "find"-containing
+  // accessible name (the Find input, the "Close find" button, the toolbar
+  // "Find and replace" button), so a bare getByLabel('Find') is ambiguous.
+  await page.getByRole('textbox', { name: 'Find', exact: true }).fill('Playwright');
   await expect(page.getByText(/1 of 1/i)).toBeVisible();
 
   // Typography + page layout persist across reload.
