@@ -35,6 +35,10 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/cover-letter" element={<CoverLetter />} />
+          <Route path="/tailor" element={<TailorResume />} />
+          <Route path="/applications" element={<Applications />} />
+          <Route path="/interviews" element={<Interviews />} />
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/companies" element={<Companies />} />
@@ -42,10 +46,6 @@ export default function App() {
           <Route path="/documents" element={<Documents />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/analysis" element={<Analysis />} />
-          <Route path="/cover-letter" element={<CoverLetter />} />
-          <Route path="/tailor" element={<TailorResume />} />
-          <Route path="/applications" element={<Applications />} />
-          <Route path="/interviews" element={<Interviews />} />
           <Route path="/editor" element={<Editor />} />
           <Route path="/editor/:id" element={<EditorDocument />} />
         </Route>

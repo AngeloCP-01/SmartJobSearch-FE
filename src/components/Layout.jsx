@@ -25,17 +25,17 @@ function TopProgressBar() {
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/reminders', label: 'Reminders', icon: Bell },
-  { to: '/analytics', label: 'Analytics', icon: LineChart },
   { to: '/applications', label: 'Applications', icon: KanbanSquare },
-  { to: '/companies', label: 'Companies', icon: Building2 },
-  { to: '/contacts', label: 'Contacts', icon: Users },
-  { to: '/documents', label: 'Documents', icon: FileText },
-  { to: '/activity', label: 'Activity', icon: History },
   { to: '/analysis', label: 'Analysis', icon: ScanSearch },
   { to: '/cover-letter', label: 'Cover Letter', icon: PenLine },
-  { to: '/tailor', label: 'Tailor Résumé', icon: Wand2 },
   { to: '/interviews', label: 'Interviews', icon: CalendarClock },
+  { to: '/tailor', label: 'Tailor Résumé', icon: Wand2 },
   { to: '/editor', label: 'Editor', icon: SquarePen },
+  { to: '/documents', label: 'Documents', icon: FileText },
+  { to: '/companies', label: 'Companies', icon: Building2 },
+  { to: '/contacts', label: 'Contacts', icon: Users },
+  { to: '/analytics', label: 'Analytics', icon: LineChart },
+  { to: '/activity', label: 'Activity', icon: History },
 ];
 
 function navClass({ isActive }) {
