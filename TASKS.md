@@ -70,6 +70,7 @@ Vite + React, Tailwind v4, TanStack Query, axios client (`withCredentials`), Vit
 
 ## FE-1 — Auth flow ☑
 Login/Register, in-memory access token, 401→`/auth/refresh` interceptor (single retry), route guard, responsive sidebar/topbar layout.
+**App-shell layout fixes (2026-08-14, V3-30):** the desktop sidebar no longer stretches with page content. It was a flex child of the shell row, so it matched `<main>`'s height and `mt-auto` pinned Log out to the bottom of the *document* — a full page-scroll away on a long page. It is now `sticky top-0` at viewport height with the nav scrolling inside it, so Log out sits at the bottom of the *viewport* and stays reachable on short screens. `<main>` also gained **`min-w-0`**: without it a flex item won't shrink below its content, so the Kanban board made `main` grow and the whole document panned sideways instead of the board scrolling in its own container. Page gutters are now `<main>`'s `p-5 md:p-8` alone — eleven pages that wrapped content in `mx-auto max-w-2xl/3xl/4xl` were unwrapped so every route starts at the same x. Verified in-browser across all 13 authed routes; no unit tests, since jsdom does no layout.
 
 ## FE-2 — Companies ☑
 List + search + create + delete.

@@ -74,15 +74,24 @@ correct behaviour; confirm it *looks* deliberate when it does.
 
 ---
 
-## Also outstanding
+## Deploy gate — cleared 2026-08-14
 
-**The backend must be deployed first.** `https://smartjobsearch-api.onrender.com/api/v2/applications`
-returned **404** on 2026-08-14. The backend work is merged on BE `main` (`842afd2`) but not
-shipped. Deploying this frontend first would 404 every v2-backed page for real users.
+Both are now live: prod backend on `0197ec3`, `/api/v2/applications` → **401**. Since production
+now carries real row counts, **both checks above are best run there** rather than against a local
+seed — that was the blocker when they were first written.
 
-The gate to watch:
+It stalled once, and the reason is worth keeping. BE `main` was **fully pushed** (`842afd2` on
+`origin`) while production still served `dd7d11f` with 16 days of uptime — Render had not
+auto-deployed. **Pushed ≠ deployed.** Ask production what it is running rather than inferring it
+from git:
 
 ```bash
+curl -s https://smartjobsearch-api.onrender.com/api/v1/version
+# {"version":"1.0.0","commit":"…","uptime":…}  ← commit + uptime is the truth
 curl -s -o /dev/null -w '%{http_code}\n' https://smartjobsearch-api.onrender.com/api/v2/applications
-# 401 = deployed and asking for auth (good). 404 = not deployed yet.
+# 401 = live. 404 = the build predates v2.
 ```
+
+And on the frontend side: `.github/workflows/ci.yml` triggers on push to `main` and there is no
+local `.vercel` directory, so **`git push origin main` *is* the FE deploy.** There is no separate
+step — the push is the gate.
