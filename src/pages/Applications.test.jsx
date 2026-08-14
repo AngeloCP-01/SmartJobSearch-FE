@@ -492,3 +492,45 @@ test('clearing a filter never flashes "No applications yet" over real data via a
   await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
   expect(screen.queryByText(/no applications yet/i)).not.toBeInTheDocument();
 });
+
+test('clearing a no-match search never flashes "No applications yet" while the debounce catches up', async () => {
+  // `hasFilters` reads the RAW `search` state, so it flips false the instant
+  // the input is cleared. `term` — what the query key is actually built from
+  // — is debounced 300ms behind it, so for that whole window the settled,
+  // non-placeholder envelope in cache still belongs to the just-cleared
+  // no-match search (total 0). A `settled` computation that doesn't also wait
+  // for `search.trim() === term` reads that stale zero as "no applications at
+  // all" the moment `hasFilters` goes false, instead of waiting for the query
+  // key itself to catch up to the cleared search.
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/applications`, ({ request }) => {
+      const search = new URL(request.url).searchParams.get('search') || '';
+      if (search === 'zzz') {
+        return HttpResponse.json({ items: [], page: 1, pageSize: 25, total: 0, totalPages: 0 });
+      }
+      return HttpResponse.json({
+        items: [{ id: 'a1', position: 'Backend Eng', status: 'Applied' }],
+        page: 1, pageSize: 25, total: 137, totalPages: 6,
+      });
+    }),
+  );
+  localStorage.setItem('applicationsView', 'list');
+  renderPage();
+  await screen.findByText('Backend Eng');
+  const input = screen.getByPlaceholderText(/search applications/i);
+  await userEvent.type(input, 'zzz');
+  await waitFor(() => expect(screen.getByText('No applications match your filters.')).toBeInTheDocument());
+  await userEvent.clear(input);
+  // Checked repeatedly across the debounce window the fix has to survive, not
+  // just at the end — the bug is a mid-transition flash, and it appears right
+  // at the moment `hasFilters` flips, before `term` has had any chance to
+  // catch up.
+  expect(screen.queryByText(/no applications yet/i)).not.toBeInTheDocument();
+  await new Promise((r) => { setTimeout(r, 100); });
+  expect(screen.queryByText(/no applications yet/i)).not.toBeInTheDocument();
+  await new Promise((r) => { setTimeout(r, 150); });
+  expect(screen.queryByText(/no applications yet/i)).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  expect(screen.queryByText(/no applications yet/i)).not.toBeInTheDocument();
+});

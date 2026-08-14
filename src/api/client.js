@@ -10,7 +10,16 @@ const V1_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
 // present rather than by concatenation. Exported so the MSW test server
 // resolves the identical base instead of keeping a second copy of this rule.
 export function toV2Base(base) {
-  return base.replace(/\/api(\/v\d+)?\/?$/, '/api/v2');
+  const rewritten = base.replace(/\/api(\/v\d+)?\/?$/, '/api/v2');
+  // A no-op rewrite means the regex didn't recognize the shape of VITE_API_URL.
+  // apiV2 would then silently point at v1: v1 returns a bare array, `data?.items
+  // ?? []` swallows it, and every v2-backed page renders "empty" with no error
+  // anywhere. Loud-in-dev only — guarded so it can't fire in a production build.
+  if (import.meta.env.DEV && rewritten === base && !/\/v2\/?$/.test(base)) {
+    // eslint-disable-next-line no-console
+    console.error(`toV2Base: could not derive an /api/v2 base from "${base}" — apiV2 will silently point at v1.`);
+  }
+  return rewritten;
 }
 
 function createClient(baseURL) {

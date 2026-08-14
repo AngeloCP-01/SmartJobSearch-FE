@@ -27,7 +27,7 @@ export default function Analysis() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(10);
   const historyParams = { page: historyPage, pageSize: historyPageSize, sort: 'createdAt', dir: 'desc' };
-  const { data: historyData } = useQuery({
+  const { data: historyData, isError: historyIsError } = useQuery({
     queryKey: ['analyses', 'page', historyParams],
     queryFn: () => listAnalysesPage(historyParams),
     placeholderData: keepPreviousData,
@@ -119,30 +119,38 @@ export default function Analysis() {
 
       {current && <AnalysisReport report={current.report} atsScore={current.atsScore} matchScore={current.matchScore} aiRequested={current.aiRequested} />}
 
-      {historyTotal > 0 && (
+      {(historyTotal > 0 || historyIsError) && (
         <div className="mt-8">
           <h2 className="mb-2 text-sm font-semibold text-slate-700">Past analyses</h2>
-          <ul className="space-y-2">
-            {history.map((h) => (
-              <li key={h.id} className="flex items-center justify-between rounded-lg border border-sky-100 bg-white px-4 py-2 text-sm shadow-sm">
-                <button className="text-left hover:underline" onClick={() => openHistory.mutate(h.id)}>
-                  <span className="font-medium text-slate-800">{h.documentName}</span>
-                  <span className="text-slate-500"> · {h.position || '—'} · ATS {h.atsScore} · Match {h.matchScore ?? 'N/A'}</span>
-                </button>
-                <button type="button" aria-label={`Delete analysis of ${h.documentName}`}
-                  className="text-red-600 cursor-pointer disabled:opacity-50" disabled={remove.isPending}
-                  onClick={() => remove.mutate(h.id)}>Delete</button>
-              </li>
-            ))}
-          </ul>
-          <Pager
-            page={historyPage}
-            pageSize={historyPageSize}
-            total={historyTotal}
-            totalPages={historyTotalPages}
-            onPageChange={setHistoryPage}
-            onPageSizeChange={resetting(setHistoryPageSize)}
-          />
+          {historyIsError ? (
+            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Couldn’t load past analyses. Please try again.
+            </div>
+          ) : (
+            <>
+              <ul className="space-y-2">
+                {history.map((h) => (
+                  <li key={h.id} className="flex items-center justify-between rounded-lg border border-sky-100 bg-white px-4 py-2 text-sm shadow-sm">
+                    <button className="text-left hover:underline" onClick={() => openHistory.mutate(h.id)}>
+                      <span className="font-medium text-slate-800">{h.documentName}</span>
+                      <span className="text-slate-500"> · {h.position || '—'} · ATS {h.atsScore} · Match {h.matchScore ?? 'N/A'}</span>
+                    </button>
+                    <button type="button" aria-label={`Delete analysis of ${h.documentName}`}
+                      className="text-red-600 cursor-pointer disabled:opacity-50" disabled={remove.isPending}
+                      onClick={() => remove.mutate(h.id)}>Delete</button>
+                  </li>
+                ))}
+              </ul>
+              <Pager
+                page={historyPage}
+                pageSize={historyPageSize}
+                total={historyTotal}
+                totalPages={historyTotalPages}
+                onPageChange={setHistoryPage}
+                onPageSizeChange={resetting(setHistoryPageSize)}
+              />
+            </>
+          )}
         </div>
       )}
     </div>

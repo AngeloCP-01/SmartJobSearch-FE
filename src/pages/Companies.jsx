@@ -25,7 +25,7 @@ export default function Companies() {
   // refresh both without naming them separately.
   const params = { page, pageSize, search: term, sort: 'createdAt', dir: 'desc' };
   const {
-    data, isLoading, isPlaceholderData, isFetching,
+    data, isLoading, isPlaceholderData, isFetching, isError,
   } = useQuery({
     queryKey: ['companies', 'page', params],
     queryFn: () => listCompaniesPage(params),
@@ -54,9 +54,16 @@ export default function Companies() {
   // refetch is in flight, and isLoading is false because data already exists —
   // so `total` is stale until the fetch settles. Reading it anyway can tell a
   // user with hundreds of companies that they have none, mid-refetch (e.g.
-  // right after clearing a search that matched nothing).
-  const settled = !isPlaceholderData && !isFetching;
-  const nothingYet = settled && total === 0;
+  // right after clearing a search that matched nothing). `search.trim() ===
+  // term` closes a second, subtler door to the same stale total: the 300ms
+  // debounce window between clearing the input and `term` catching up, during
+  // which isPlaceholderData/isFetching have already gone false for the
+  // previous (still-stale) search's envelope. This page's empty state doesn't
+  // yet distinguish "none at all" from "no match" so the guard is inert today
+  // — it's here so that gap can be closed later without reintroducing the
+  // flash this exact combination causes on Applications' List view.
+  const settled = !isPlaceholderData && !isFetching && search.trim() === term;
+  const nothingYet = settled && total === 0 && !isError;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -86,6 +93,12 @@ export default function Companies() {
         />
         <Button type="submit" disabled={create.isPending}><Plus size={16} aria-hidden="true" /> Add company</Button>
       </form>
+
+      {isError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Couldn’t load companies. Please try again.
+        </div>
+      )}
 
       {isLoading ? (
         <Spinner center />

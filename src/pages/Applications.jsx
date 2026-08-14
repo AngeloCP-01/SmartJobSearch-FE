@@ -339,13 +339,21 @@ export default function Applications() {
   const total = list.data?.total ?? 0;
   const totalPages = list.data?.totalPages ?? 0;
   const isLoading = isList ? list.isLoading : board.isLoading;
+  const isError = isList ? list.isError : board.isError;
   // keepPreviousData means list.data is the PREVIOUS page's envelope while a
   // refetch is in flight, and isLoading is false because data already exists —
   // so total/totalPages are stale until the fetch settles. Reading them anyway
   // can tell a user with 137 applications that they have none, mid-refetch.
-  const settled = isList ? !list.isPlaceholderData && !list.isFetching : true;
-  const nothingYet = isList ? settled && total === 0 && !hasFilters : apps.length === 0;
-  const nothingMatched = isList ? settled && total === 0 && hasFilters : apps.length > 0 && visible.length === 0;
+  // `search.trim() === term` closes a second, subtler door to the same stale
+  // total: `hasFilters` below reads the raw `search`, but `term` is debounced
+  // 300ms behind it, so for that window after clearing a no-match search the
+  // *settled* envelope still belongs to the old search — isPlaceholderData and
+  // isFetching have both already gone false for it. Without this clause,
+  // `settled` goes true one render before `term` catches up, and "No
+  // applications yet" flashes for a real, non-empty account.
+  const settled = isList ? !list.isPlaceholderData && !list.isFetching && search.trim() === term : true;
+  const nothingYet = isList ? settled && total === 0 && !hasFilters && !isError : apps.length === 0 && !isError;
+  const nothingMatched = isList ? settled && total === 0 && hasFilters && !isError : apps.length > 0 && visible.length === 0 && !isError;
 
   const move = useMutation(moveMutationOptions(qc));
   const onStatusChange = (id, status) => move.mutate({ id, status });
@@ -414,6 +422,12 @@ export default function Applications() {
       {move.isError && (
         <div role="alert" className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           <AlertCircle size={16} aria-hidden="true" /> Couldn’t move the application. Please try again.
+        </div>
+      )}
+
+      {isError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Couldn’t load applications. Please try again.
         </div>
       )}
 

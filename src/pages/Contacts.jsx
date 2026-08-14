@@ -30,7 +30,7 @@ export default function Contacts() {
   // below still refreshes both.
   const params = { page, pageSize, search: term, sort: 'createdAt', dir: 'desc' };
   const {
-    data, isLoading, isPlaceholderData, isFetching,
+    data, isLoading, isPlaceholderData, isFetching, isError,
   } = useQuery({
     queryKey: ['contacts', 'page', params],
     queryFn: () => listContactsPage(params),
@@ -59,8 +59,16 @@ export default function Contacts() {
   // refetch is in flight, and isLoading is false because data already exists —
   // so `total` is stale until the fetch settles. Reading it anyway can tell a
   // user with hundreds of contacts that they have none, mid-refetch.
-  const settled = !isPlaceholderData && !isFetching;
-  const nothingYet = settled && total === 0;
+  // `search.trim() === term` closes a second, subtler door to the same stale
+  // total: the 300ms debounce window between clearing the input and `term`
+  // catching up, during which isPlaceholderData/isFetching have already gone
+  // false for the previous (still-stale) search's envelope. This page's empty
+  // state doesn't yet distinguish "none at all" from "no match" so the guard
+  // is inert today — it's here so that gap can be closed later without
+  // reintroducing the flash this exact combination causes on Applications'
+  // List view.
+  const settled = !isPlaceholderData && !isFetching && search.trim() === term;
+  const nothingYet = settled && total === 0 && !isError;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -78,6 +86,12 @@ export default function Contacts() {
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
+
+      {isError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Couldn’t load contacts. Please try again.
+        </div>
+      )}
 
       {isLoading ? (
         <Spinner center />
