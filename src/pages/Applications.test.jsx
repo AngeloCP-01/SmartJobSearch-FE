@@ -182,6 +182,25 @@ test('filters applications by status', async () => {
   expect(screen.getByText('Frontend Eng')).toBeInTheDocument();
 });
 
+test('the company filter lists every company, not just one page', async () => {
+  // This filter is a fifth consumer of the bare ['companies'] key, alongside
+  // ApplicationDrawer.jsx:90 and ContactDrawer.jsx:42 — it reads listCompanies()
+  // (v1, all rows) via the same shared cache. The Companies *page* keys
+  // separately (['companies','page',params]), so today there is no defect;
+  // this guards that a future change doesn't silently point this dropdown at a
+  // paginated call. 30 exceeds the default pageSize of 25 so truncation would
+  // be visible.
+  const companies = Array.from({ length: 30 }, (_, i) => ({ id: `c${i + 1}`, name: `Company ${i + 1}` }));
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API}/companies`, () => HttpResponse.json(companies)),
+  );
+  renderPage();
+  expect(await screen.findByRole('option', { name: 'Company 1' })).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'Company 30' })).toBeInTheDocument();
+  expect(screen.getAllByRole('option', { name: /^Company \d+$/ })).toHaveLength(30);
+});
+
 test('filters applications by company', async () => {
   server.use(
     http.get(`${API}/applications`, () => HttpResponse.json([
