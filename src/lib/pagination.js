@@ -57,3 +57,14 @@ export function useClampedPage(page, totalPages, setPage) {
     if (totalPages > 0 && page > totalPages) setPage(totalPages);
   }, [page, totalPages, setPage]);
 }
+
+// Reset the page as part of the state change, not in an effect afterwards.
+// useQuery's own internal effect runs on every render in hook-declaration
+// order — it is declared above, before any effect we could add here — so an
+// effect-based reset would dispatch one request for the stale page *before*
+// it runs, and keepPreviousData would happily render that response on the
+// way past. Resetting inside the handler means no render ever exists with a
+// new search term/filter/page size and an old page.
+export function pageResetter(setPage) {
+  return (set) => (value) => { set(value); setPage(1); };
+}

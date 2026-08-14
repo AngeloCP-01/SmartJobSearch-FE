@@ -5,7 +5,9 @@ import { listCompaniesPage, createCompany, deleteCompany } from '../api/companie
 import Button from '../components/Button';
 import Pager from '../components/Pager';
 import Spinner from '../components/Spinner';
-import { DEFAULT_PAGE_SIZE, useClampedPage, useDebouncedValue } from '../lib/pagination';
+import {
+  DEFAULT_PAGE_SIZE, pageResetter, useClampedPage, useDebouncedValue,
+} from '../lib/pagination';
 
 export default function Companies() {
   const qc = useQueryClient();
@@ -34,14 +36,7 @@ export default function Companies() {
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 0;
 
-  // Reset the page as part of the state change, not in an effect afterwards.
-  // useQuery's own internal effect runs on every render in hook-declaration
-  // order — it is declared above, before any effect we could add here — so an
-  // effect-based reset would dispatch one request for the stale page *before*
-  // it runs, and keepPreviousData would happily render that response on the
-  // way past. Resetting inside the handler means no render ever exists with a
-  // new search term or page size and an old page.
-  const resetting = (set) => (value) => { set(value); setPage(1); };
+  const resetting = pageResetter(setPage);
   const onSearchChange = resetting(setSearch);
   const onPageSizeChange = resetting(setPageSize);
   useClampedPage(page, totalPages, setPage);

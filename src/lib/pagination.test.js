@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
-import { pageWindow, rangeLabel, useClampedPage, useDebouncedValue } from './pagination';
+import {
+  pageResetter, pageWindow, rangeLabel, useClampedPage, useDebouncedValue,
+} from './pagination';
 import { compactParams } from '../api/params';
 
 test('rangeLabel reads as "first–last of total"', () => {
@@ -57,6 +59,27 @@ describe('useDebouncedValue', () => {
     expect(result.current).toBe('a');
     act(() => vi.advanceTimersByTime(100));
     expect(result.current).toBe('abc');
+  });
+});
+
+describe('pageResetter', () => {
+  test('sets the value and resets the page in one call', () => {
+    const setPage = vi.fn();
+    const setSearch = vi.fn();
+    const resetting = pageResetter(setPage);
+    resetting(setSearch)('acme');
+    expect(setSearch).toHaveBeenCalledWith('acme');
+    expect(setPage).toHaveBeenCalledWith(1);
+  });
+
+  test('produces an independent resetter per setter it wraps', () => {
+    const setPage = vi.fn();
+    const resetting = pageResetter(setPage);
+    const onSearchChange = resetting(vi.fn());
+    const onPageSizeChange = resetting(vi.fn());
+    onSearchChange('a');
+    onPageSizeChange(50);
+    expect(setPage).toHaveBeenCalledTimes(2);
   });
 });
 
