@@ -48,7 +48,7 @@ export default function Interviews() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Interviews</h1>
 
       <form className="mb-6 flex flex-wrap gap-2" onSubmit={onSubmit}>

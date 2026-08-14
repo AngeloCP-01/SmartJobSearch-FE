@@ -80,7 +80,7 @@ function EditorDocumentForm({ id, initialDoc, tailoring }) {
     : (<><Check size={14} aria-hidden="true" /> Saved</>);
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Link to="/editor" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
           <ArrowLeft size={16} aria-hidden="true" /> Back

@@ -80,7 +80,7 @@ export default function Analysis() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Résumé Analysis</h1>
 
       <form className="mb-6 rounded-xl border border-sky-100 bg-white p-4 shadow-sm" onSubmit={onRun}>

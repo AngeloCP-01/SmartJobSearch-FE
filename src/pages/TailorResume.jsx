@@ -114,7 +114,7 @@ export default function TailorResume() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <h1 className="mb-1 text-2xl font-bold text-slate-900">Tailor Résumé</h1>
       <p className="mb-5 inline-flex items-center gap-1.5 text-sm text-slate-500">
         <Sparkles size={15} aria-hidden="true" /> AI suggestions grounded in your real documents — nothing invented.

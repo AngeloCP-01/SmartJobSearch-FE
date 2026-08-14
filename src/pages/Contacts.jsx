@@ -71,7 +71,7 @@ export default function Contacts() {
   const nothingYet = settled && total === 0 && !isError;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <div className="mb-5 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">Contacts</h1>
         <Button onClick={openCreate}><Plus size={16} aria-hidden="true" /> Add contact</Button>

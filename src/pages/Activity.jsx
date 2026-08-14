@@ -26,7 +26,7 @@ export default function Activity() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Activity</h1>
 
       {isLoading && <Spinner center />}

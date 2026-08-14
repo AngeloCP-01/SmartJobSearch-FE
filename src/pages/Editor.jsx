@@ -42,7 +42,7 @@ export default function Editor() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Editor</h1>
 
       <form

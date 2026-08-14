@@ -66,7 +66,7 @@ export default function Companies() {
   const nothingYet = settled && total === 0 && !isError;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Companies</h1>
 
       <div className="relative mb-4">

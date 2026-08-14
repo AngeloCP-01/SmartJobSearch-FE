@@ -248,7 +248,12 @@ export default function Layout() {
         onLogout={logout}
       />
 
-      <main id="main" className="flex-1 p-5 md:p-8">
+      {/* min-w-0 is load-bearing: a flex item defaults to min-width:auto and
+          refuses to shrink below its content, so the Kanban board (9 columns,
+          ~2256px) and the List view's min-w-[44rem] table made *main* grow and
+          the whole document pan sideways — carrying the sidebar off-screen —
+          instead of scrolling inside their own overflow-x-auto containers. */}
+      <main id="main" className="min-w-0 flex-1 p-5 md:p-8">
         <AppErrorBoundary key={pathname} variant="page">
           <Suspense fallback={<Spinner center />}>
             <Outlet />

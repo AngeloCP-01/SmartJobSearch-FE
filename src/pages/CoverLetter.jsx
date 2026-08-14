@@ -103,7 +103,7 @@ export default function CoverLetter() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <h1 className="mb-1 text-2xl font-bold text-slate-900">Cover Letter Generator</h1>
       <p className="mb-5 inline-flex items-center gap-1.5 text-sm text-slate-500">
         <Sparkles size={15} aria-hidden="true" /> AI-drafted from a job description and your résumé.
