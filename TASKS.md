@@ -45,6 +45,26 @@ Master coordination: `../TASKS.md`
 >
 > **Work-mode field (2026-06-26):** applications gain a **Remote / Hybrid / On-site** field (`WorkMode` enum + migration), set in the drawer, extracted by auto-import, and shown as a chip on cards/list. **143 tests**, verified live.
 
+## V3-29 — What is paginated (2026-08-14)
+
+Five surfaces moved to `/api/v2`. Four take a numbered `<Pager>`; Activity deliberately does not.
+
+| Surface | Where | Strategy | Default size | Notes |
+|---|---|---|---|---|
+| Applications **List view** | `/applications`, List toggle only | offset, numbered pager | 25 | The **Kanban board is not paginated** — it needs every row for drag/drop |
+| Companies | `/companies` | offset, numbered pager | 25 | server-side search |
+| Contacts | `/contacts` | offset, numbered pager | 25 | server-side search |
+| Analysis history | `/analysis`, "Past analyses" | offset, numbered pager | **10** | Section only renders once you have ≥1 saved analysis, so with an empty history there is no pager to see |
+| Activity | `/activity` | **cursor**, "Load more" | 25 | **No numbered pager on purpose** — offset over an append-only feed re-serves rows as new events land at the top. The Dashboard preview asks for `pageSize: 10` |
+
+**Not paginated, and not an oversight:** the Kanban board; every "all rows" call that feeds a dropdown
+(`listApplications`, `listCompanies`, `listContacts`, `fetchActivity`), which stay on v1 under their bare
+react-query keys; and Documents / Interviews / Reminders / Editor, which have **no v2 endpoints** — the
+backend shipped v2 for exactly these five modules (`SmartJobSearchCRM-BE/src/routes/v2.js`).
+
+If a pager is missing where you expect one: check you are in Applications **List** view rather than Board,
+and that the Analysis page actually has saved analyses.
+
 ## FE-0 — Scaffold ☑
 Vite + React, Tailwind v4, TanStack Query, axios client (`withCredentials`), Vitest + MSW.
 
@@ -53,6 +73,7 @@ Login/Register, in-memory access token, 401→`/auth/refresh` interceptor (singl
 
 ## FE-2 — Companies ☑
 List + search + create + delete.
+**Pagination on `/api/v2` (2026-08-14, V3-29):** the page fetches one server-paginated page (10/25/50/100, `keepPreviousData`) under `['companies', 'page', params]`, with server-side search and a ~300ms debounce; order stays `createdAt desc` and there is no sort UI. The no-argument `listCompanies()` and its bare `['companies']` key are untouched — they still feed the `ApplicationDrawer` / `ContactDrawer` company dropdowns *and* the Applications page's company filter, so those keep seeing every company.
 
 ## FE-3 — Applications Kanban + List ☑
 @dnd-kit board, one column per status, optimistic `PATCH /:id/status` on drop.
