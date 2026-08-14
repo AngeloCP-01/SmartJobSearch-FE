@@ -32,5 +32,14 @@ export default defineConfig({
     css: true,
     // Unit/component tests live under src/; e2e/ is Playwright-only.
     include: ['src/**/*.{test,spec}.{js,jsx}'],
+    // The suite's heaviest tests (drag-and-drop, multi-drawer flows) sit close
+    // to Vitest's 5000ms default even in isolation, and running the full suite
+    // spreads them across parallel workers that contend for the same CPU —
+    // pushing some over the line. Measured flakes were always a timeout, never
+    // a real assertion failure, and reproduced on untouched main too. Raising
+    // the ceiling (rather than speeding up or rewriting the tests) removes the
+    // false failures without changing what is being tested.
+    testTimeout: 15000,
+    hookTimeout: 15000,
   },
 });

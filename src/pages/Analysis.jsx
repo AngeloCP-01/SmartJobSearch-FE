@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { ScanSearch } from 'lucide-react';
 import { listApplications, getApplication } from '../api/applications';
 import { listDocuments } from '../api/documents';
-import { runAnalysis, listAnalyses, getAnalysis, deleteAnalysis, getAnalysisConfig } from '../api/analysis';
+import { runAnalysis, listAnalysesPage, getAnalysis, deleteAnalysis, getAnalysisConfig } from '../api/analysis';
 import AnalysisReport from '../components/AnalysisReport';
 import Button from '../components/Button';
+import Pager from '../components/Pager';
+import { pageResetter, useClampedPage } from '../lib/pagination';
 import { trackEvent } from '../observability/analytics';
 
 const selectClass = 'rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500';
@@ -20,7 +22,28 @@ export default function Analysis() {
 
   const { data: applications = [] } = useQuery({ queryKey: ['applications'], queryFn: listApplications });
   const { data: documents = [] } = useQuery({ queryKey: ['documents'], queryFn: () => listDocuments() });
-  const { data: history = [] } = useQuery({ queryKey: ['analyses'], queryFn: listAnalyses });
+  // A secondary list under a form, so 10 rather than the 25 default — still an
+  // allowlisted size, which is what matters (anything else is a 400).
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(10);
+  const historyParams = { page: historyPage, pageSize: historyPageSize, sort: 'createdAt', dir: 'desc' };
+  const { data: historyData, isError: historyIsError } = useQuery({
+    queryKey: ['analyses', 'page', historyParams],
+    queryFn: () => listAnalysesPage(historyParams),
+    placeholderData: keepPreviousData,
+  });
+  const history = historyData?.items ?? [];
+  const historyTotal = historyData?.total ?? 0;
+  const historyTotalPages = historyData?.totalPages ?? 0;
+  useClampedPage(historyPage, historyTotalPages, setHistoryPage);
+
+  // No search box and no filters on this page — page size is the only
+  // reshaping input, so it is the only thing that needs a reset-to-1. Reset
+  // happens inside the handler (see pageResetter), not in a useEffect: an
+  // effect-based reset would fire after useQuery's own effect (declared
+  // first, above), dispatching a fetch for the stale page before the reset
+  // lands.
+  const resetting = pageResetter(setHistoryPage);
   const { data: aiConfig } = useQuery({ queryKey: ['analysisConfig'], queryFn: getAnalysisConfig });
   const aiAvailable = Boolean(aiConfig?.aiAvailable);
   // jobDescription is a detail-only field, not on the slim list items — fetch the selected app.
@@ -96,22 +119,38 @@ export default function Analysis() {
 
       {current && <AnalysisReport report={current.report} atsScore={current.atsScore} matchScore={current.matchScore} aiRequested={current.aiRequested} />}
 
-      {history.length > 0 && (
+      {(historyTotal > 0 || historyIsError) && (
         <div className="mt-8">
           <h2 className="mb-2 text-sm font-semibold text-slate-700">Past analyses</h2>
-          <ul className="space-y-2">
-            {history.map((h) => (
-              <li key={h.id} className="flex items-center justify-between rounded-lg border border-sky-100 bg-white px-4 py-2 text-sm shadow-sm">
-                <button className="text-left hover:underline" onClick={() => openHistory.mutate(h.id)}>
-                  <span className="font-medium text-slate-800">{h.documentName}</span>
-                  <span className="text-slate-500"> · {h.position || '—'} · ATS {h.atsScore} · Match {h.matchScore ?? 'N/A'}</span>
-                </button>
-                <button type="button" aria-label={`Delete analysis of ${h.documentName}`}
-                  className="text-red-600 cursor-pointer disabled:opacity-50" disabled={remove.isPending}
-                  onClick={() => remove.mutate(h.id)}>Delete</button>
-              </li>
-            ))}
-          </ul>
+          {historyIsError ? (
+            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Couldn’t load past analyses. Please try again.
+            </div>
+          ) : (
+            <>
+              <ul className="space-y-2">
+                {history.map((h) => (
+                  <li key={h.id} className="flex items-center justify-between rounded-lg border border-sky-100 bg-white px-4 py-2 text-sm shadow-sm">
+                    <button className="text-left hover:underline" onClick={() => openHistory.mutate(h.id)}>
+                      <span className="font-medium text-slate-800">{h.documentName}</span>
+                      <span className="text-slate-500"> · {h.position || '—'} · ATS {h.atsScore} · Match {h.matchScore ?? 'N/A'}</span>
+                    </button>
+                    <button type="button" aria-label={`Delete analysis of ${h.documentName}`}
+                      className="text-red-600 cursor-pointer disabled:opacity-50" disabled={remove.isPending}
+                      onClick={() => remove.mutate(h.id)}>Delete</button>
+                  </li>
+                ))}
+              </ul>
+              <Pager
+                page={historyPage}
+                pageSize={historyPageSize}
+                total={historyTotal}
+                totalPages={historyTotalPages}
+                onPageChange={setHistoryPage}
+                onPageSizeChange={resetting(setHistoryPageSize)}
+              />
+            </>
+          )}
         </div>
       )}
     </div>

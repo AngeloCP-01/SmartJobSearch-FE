@@ -3,12 +3,17 @@ import {
   DndContext, useDraggable, useDroppable,
   PointerSensor, KeyboardSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Plus, AlertCircle, Maximize2, Search, LayoutGrid, List, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-import { listApplications, updateStatus } from '../api/applications';
+import { listApplications, listApplicationsPage, updateStatus } from '../api/applications';
+import { listCompanies } from '../api/companies';
 import Button from '../components/Button';
 import ApplicationDrawer from '../components/ApplicationDrawer';
+import Pager from '../components/Pager';
 import Spinner from '../components/Spinner';
+import {
+  DEFAULT_PAGE_SIZE, pageResetter, useClampedPage, useDebouncedValue,
+} from '../lib/pagination';
 import { STATUSES } from '../lib/applicationStatus';
 import { formatSalaryRange } from '../lib/salary';
 
@@ -48,18 +53,32 @@ export function applyDrop({ activeId, overId }, doUpdate) {
   return doUpdate(activeId, overId);
 }
 
+// The same application can sit in two caches at once: the bare ['applications']
+// array the board and the four dropdowns read, and the ['applications','page',…]
+// envelope the List view reads. An optimistic move has to patch whichever is
+// mounted, so the updater is shape-aware rather than array-only.
+export function patchAppStatus(data, id, status) {
+  const move = (rows) => rows.map((a) => (a.id === id ? { ...a, status } : a));
+  if (Array.isArray(data)) return move(data);
+  if (data && Array.isArray(data.items)) return { ...data, items: move(data.items) };
+  return data; // unfetched or an unexpected shape — leave it alone
+}
+
 // Optimistic-move mutation config, extracted so the cache logic (the interesting
 // part) is unit-testable independently of pointer-based drag events.
 export function moveMutationOptions(qc) {
   return {
     mutationFn: ({ id, status }) => updateStatus(id, status),
     onMutate: async ({ id, status }) => {
+      // ['applications'] is a prefix, so this reaches the paginated key too.
       await qc.cancelQueries({ queryKey: ['applications'] });
-      const prev = qc.getQueryData(['applications']);
-      qc.setQueryData(['applications'], (old = []) => old.map((a) => (a.id === id ? { ...a, status } : a)));
+      const prev = qc.getQueriesData({ queryKey: ['applications'] });
+      qc.setQueriesData({ queryKey: ['applications'] }, (old) => patchAppStatus(old, id, status));
       return { prev };
     },
-    onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(['applications'], ctx.prev); },
+    onError: (_e, _v, ctx) => {
+      for (const [key, data] of ctx?.prev ?? []) qc.setQueryData(key, data);
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['applications'] });
       qc.invalidateQueries({ queryKey: ['activity'] });
@@ -159,35 +178,20 @@ function ViewToggle({ view, onChange }) {
   );
 }
 
-// Pure comparators per sortable column. Salary sorts by the upper bound (falling
-// back to the lower); missing values sort last in ascending order.
-const SORTS = {
-  position: (a, b) => a.position.localeCompare(b.position),
-  company: (a, b) => (a.company?.name || '').localeCompare(b.company?.name || ''),
-  status: (a, b) => STATUSES.indexOf(a.status) - STATUSES.indexOf(b.status),
-  salary: (a, b) => (a.salaryMax ?? a.salaryMin ?? -1) - (b.salaryMax ?? b.salaryMin ?? -1),
-  applicationDate: (a, b) => new Date(a.applicationDate || 0) - new Date(b.applicationDate || 0),
-};
-
+// `sortable` mirrors the server allowlist — v2 400s on anything else. Salary is
+// displayed but not sortable: it is not a sort key, and sorting the 25 rows on
+// screen would report the page maximum as the overall maximum.
 const COLUMNS = [
-  { key: 'position', label: 'Position' },
-  { key: 'company', label: 'Company' },
-  { key: 'status', label: 'Status' },
-  { key: 'salary', label: 'Salary' },
-  { key: 'applicationDate', label: 'Applied' },
+  { key: 'position', label: 'Position', sortable: true },
+  { key: 'company', label: 'Company', sortable: true },
+  { key: 'status', label: 'Status', sortable: true },
+  { key: 'salary', label: 'Salary', sortable: false },
+  { key: 'applicationDate', label: 'Applied', sortable: true },
 ];
 
 const dash = <span className="text-slate-300">—</span>;
 
-export function sortApps(apps, { key, dir }) {
-  const cmp = SORTS[key];
-  if (!cmp) return apps;
-  const out = [...apps].sort(cmp);
-  return dir === 'desc' ? out.reverse() : out;
-}
-
-function ListView({ apps, sort, onSort, onOpen, onStatusChange }) {
-  const rows = sortApps(apps, sort);
+function ListView({ rows, sort, onSort, onOpen, onStatusChange }) {
   // `relative` matters: the sr-only header label is position:absolute, and
   // without a positioned ancestor it resolves against the initial containing
   // block — escaping this scrollbox and stretching the whole document's scroll
@@ -201,19 +205,21 @@ function ListView({ apps, sort, onSort, onOpen, onStatusChange }) {
         <thead>
           <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
             {COLUMNS.map((c) => {
-              const active = sort.key === c.key;
+              const active = c.sortable && sort.key === c.key;
               const SortIcon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown;
               return (
                 <th key={c.key} scope="col" className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => onSort(c.key)}
-                    aria-label={`Sort by ${c.label}`}
-                    className="inline-flex items-center gap-1 cursor-pointer hover:text-slate-700"
-                  >
-                    {c.label}
-                    <SortIcon size={12} aria-hidden="true" className={active ? '' : 'text-slate-300'} />
-                  </button>
+                  {c.sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => onSort(c.key)}
+                      aria-label={`Sort by ${c.label}`}
+                      className="inline-flex items-center gap-1 cursor-pointer hover:text-slate-700"
+                    >
+                      {c.label}
+                      <SortIcon size={12} aria-hidden="true" className={active ? '' : 'text-slate-300'} />
+                    </button>
+                  ) : c.label}
                 </th>
               );
             })}
@@ -268,36 +274,93 @@ export default function Applications() {
   const [companyFilter, setCompanyFilter] = useState('');
   const [view, setView] = useState(() => localStorage.getItem('applicationsView') || 'kanban');
   const [sort, setSort] = useState({ key: 'applicationDate', dir: 'desc' });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [drawer, setDrawer] = useState({ open: false, application: null });
   const openDrawer = (application) => setDrawer({ open: true, application });
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
   );
-  const { data: apps = [], isLoading } = useQuery({ queryKey: ['applications'], queryFn: listApplications });
+
+  const isList = view === 'list';
+  // The board filters an already-loaded array, so its search is instant. Only
+  // the List view's search costs a request, so only it is debounced.
+  const term = useDebouncedValue(search, 300).trim();
+  const boardTerm = search.trim().toLowerCase();
+
+  // The board needs every row: one column per status, and dragging between
+  // them. It stays on the unpaginated v1 call under the shared ['applications']
+  // key — the same key the four dropdown pages read.
+  const board = useQuery({ queryKey: ['applications'], queryFn: listApplications, enabled: !isList });
+
+  // "One page" is a separate key from "all rows" on purpose. Writing a subset
+  // into ['applications'] would truncate the Analysis / Interviews /
+  // TailorResume / CoverLetter dropdowns, and present as missing data.
+  const pageParams = {
+    page, pageSize, sort: sort.key, dir: sort.dir, search: term, status: statusFilter, companyId: companyFilter,
+  };
+  const list = useQuery({
+    queryKey: ['applications', 'page', pageParams],
+    queryFn: () => listApplicationsPage(pageParams),
+    enabled: isList,
+    placeholderData: keepPreviousData, // no empty flash between pages
+  });
+
+  // Filter options come from the full companies list, not from the rows on
+  // screen: a page only knows its own 25 companies, so deriving from it would
+  // hide the company the user is looking for. The trade is a few companies with
+  // no applications in the dropdown; the alternative is an unreachable filter.
+  // Shares the drawers' ['companies'] cache, so it is usually already warm.
+  const { data: allCompanies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => listCompanies() });
+  const companyOptions = [...allCompanies].sort((x, y) => x.name.localeCompare(y.name));
 
   useEffect(() => { localStorage.setItem('applicationsView', view); }, [view]);
 
-  // Company filter options derived from the loaded applications (only companies
-  // that actually have applications show up — no empty choices, no extra query).
-  const companyOptions = [...new Map(apps.filter((a) => a.company).map((a) => [a.company.id, a.company.name])).entries()]
-    .map(([id, name]) => ({ id, name }))
-    .sort((x, y) => x.name.localeCompare(y.name));
+  const resetting = pageResetter(setPage);
+  const onSearchChange = resetting(setSearch);
+  const onStatusFilterChange = resetting(setStatusFilter);
+  const onCompanyFilterChange = resetting(setCompanyFilter);
+  const onPageSizeChange = resetting(setPageSize);
+  useClampedPage(page, list.data?.totalPages ?? 0, setPage);
 
-  const term = search.trim().toLowerCase();
-  const hasFilters = Boolean(term || statusFilter || companyFilter);
+  const apps = board.data ?? [];
+  const hasFilters = Boolean(search.trim() || statusFilter || companyFilter);
   const visible = apps.filter((a) => {
     if (statusFilter && a.status !== statusFilter) return false;
     if (companyFilter && a.company?.id !== companyFilter) return false;
-    if (term && !(a.position.toLowerCase().includes(term) || (a.company?.name || '').toLowerCase().includes(term))) return false;
+    if (boardTerm && !(a.position.toLowerCase().includes(boardTerm) || (a.company?.name || '').toLowerCase().includes(boardTerm))) return false;
     return true;
   });
   const shownStatuses = statusFilter ? [statusFilter] : STATUSES;
-  const clearFilters = () => { setSearch(''); setStatusFilter(''); setCompanyFilter(''); };
+  const clearFilters = () => { setSearch(''); setStatusFilter(''); setCompanyFilter(''); setPage(1); };
+
+  const rows = list.data?.items ?? [];
+  const total = list.data?.total ?? 0;
+  const totalPages = list.data?.totalPages ?? 0;
+  const isLoading = isList ? list.isLoading : board.isLoading;
+  const isError = isList ? list.isError : board.isError;
+  // keepPreviousData means list.data is the PREVIOUS page's envelope while a
+  // refetch is in flight, and isLoading is false because data already exists —
+  // so total/totalPages are stale until the fetch settles. Reading them anyway
+  // can tell a user with 137 applications that they have none, mid-refetch.
+  // `search.trim() === term` closes a second, subtler door to the same stale
+  // total: `hasFilters` below reads the raw `search`, but `term` is debounced
+  // 300ms behind it, so for that window after clearing a no-match search the
+  // *settled* envelope still belongs to the old search — isPlaceholderData and
+  // isFetching have both already gone false for it. Without this clause,
+  // `settled` goes true one render before `term` catches up, and "No
+  // applications yet" flashes for a real, non-empty account.
+  const settled = isList ? !list.isPlaceholderData && !list.isFetching && search.trim() === term : true;
+  const nothingYet = isList ? settled && total === 0 && !hasFilters && !isError : apps.length === 0 && !isError;
+  const nothingMatched = isList ? settled && total === 0 && hasFilters && !isError : apps.length > 0 && visible.length === 0 && !isError;
 
   const move = useMutation(moveMutationOptions(qc));
   const onStatusChange = (id, status) => move.mutate({ id, status });
-  const onSort = (key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+  const onSort = (key) => {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+    setPage(1);
+  };
 
   function onDragEnd(event) {
     applyDrop(
@@ -320,7 +383,7 @@ export default function Applications() {
             placeholder="Search applications…"
             aria-label="Search applications"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
         {/* The two filters share one full-width row on phones. `sm:contents`
@@ -330,7 +393,7 @@ export default function Applications() {
           aria-label="Filter by status"
           className="min-w-0 flex-1 sm:flex-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => onStatusFilterChange(e.target.value)}
         >
           <option value="">All statuses</option>
           {STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
@@ -339,7 +402,7 @@ export default function Applications() {
           aria-label="Filter by company"
           className="min-w-0 flex-1 sm:flex-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           value={companyFilter}
-          onChange={(e) => setCompanyFilter(e.target.value)}
+          onChange={(e) => onCompanyFilterChange(e.target.value)}
         >
           <option value="">All companies</option>
           {companyOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -362,20 +425,36 @@ export default function Applications() {
         </div>
       )}
 
+      {isError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Couldn’t load applications. Please try again.
+        </div>
+      )}
+
       {isLoading ? (
         <Spinner center />
       ) : (
         <>
-          {apps.length === 0 && (
+          {nothingYet && (
             <p className="mb-3 text-sm text-slate-500">
               No applications yet — click <span className="font-medium">New application</span> to add your first one, then drag it across the board as you progress.
             </p>
           )}
-          {apps.length > 0 && visible.length === 0 && (
+          {nothingMatched && (
             <p className="mb-3 text-sm text-slate-500">No applications match your filters.</p>
           )}
-          {view === 'list' ? (
-            <ListView apps={visible} sort={sort} onSort={onSort} onOpen={openDrawer} onStatusChange={onStatusChange} />
+          {isList ? (
+            <>
+              <ListView rows={rows} sort={sort} onSort={onSort} onOpen={openDrawer} onStatusChange={onStatusChange} />
+              <Pager
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                onPageSizeChange={onPageSizeChange}
+              />
+            </>
           ) : (
             <DndContext sensors={sensors} onDragEnd={onDragEnd}>
               <div className="flex gap-3 overflow-x-auto pb-4">

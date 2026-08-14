@@ -3,13 +3,17 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { server, API } from '../test/server';
+import { server, API, API_V2 } from '../test/server';
 import Analysis from './Analysis';
 import { trackEvent } from '../observability/analytics';
 
 vi.mock('../observability/analytics', () => ({ trackEvent: vi.fn() }));
 
 beforeEach(() => { trackEvent.mockClear(); });
+
+const historyPage = (items) => ({
+  items, page: 1, pageSize: 10, total: items.length, totalPages: items.length ? 1 : 0,
+});
 
 const REPORT = {
   meta: { documentName: 'Backend Resume', position: 'Backend Engineer', jdPresent: true, extractionOk: true, wordCount: 600 },
@@ -35,7 +39,7 @@ test('runs an analysis and renders the report', async () => {
     http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
     http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' })),
     http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([]))),
     http.post(`${API}/analysis`, () => HttpResponse.json({ id: 'an1', atsScore: 82, matchScore: 67, report: REPORT, createdAt: new Date().toISOString() }, { status: 201 })),
   );
   renderPage();
@@ -51,9 +55,9 @@ test('renders a history list', async () => {
   server.use(
     http.get(`${API}/applications`, () => HttpResponse.json([])),
     http.get(`${API}/documents`, () => HttpResponse.json([])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([
       { id: 'an1', atsScore: 82, matchScore: 67, documentName: 'Backend Resume', position: 'Backend Engineer', createdAt: new Date().toISOString() },
-    ])),
+    ]))),
   );
   renderPage();
   await waitFor(() => expect(screen.getByText('Backend Resume')).toBeInTheDocument());
@@ -64,7 +68,7 @@ test('shows the no-job-description note when the selected application has no JD'
     http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
     http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: null })),
     http.get(`${API}/documents`, () => HttpResponse.json([])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([]))),
   );
   renderPage();
   await waitFor(() => expect(screen.getByRole('option', { name: /Backend Engineer/ })).toBeInTheDocument());
@@ -77,7 +81,7 @@ test('shows an error banner if the run fails', async () => {
     http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
     http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' })),
     http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([]))),
     http.post(`${API}/analysis`, () => HttpResponse.json({ error: { message: 'boom', code: 'X' } }, { status: 500 })),
   );
   renderPage();
@@ -92,7 +96,7 @@ test('AI toggle is disabled when the server has no key', async () => {
   server.use(
     http.get(`${API}/applications`, () => HttpResponse.json([])),
     http.get(`${API}/documents`, () => HttpResponse.json([])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([]))),
     http.get(`${API}/analysis/config`, () => HttpResponse.json({ aiAvailable: false })),
   );
   renderPage();
@@ -105,7 +109,7 @@ test('with AI available, checking the toggle posts useAi:true and shows the AI b
     http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
     http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Rust' })),
     http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([]))),
     http.get(`${API}/analysis/config`, () => HttpResponse.json({ aiAvailable: true })),
     http.post(`${API}/analysis`, async ({ request }) => {
       postedUseAi = (await request.json()).useAi;
@@ -129,7 +133,7 @@ test('fires ai_analysis_run on submit with the ai flag', async () => {
     http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
     http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' })),
     http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([]))),
     http.post(`${API}/analysis`, () => HttpResponse.json({ id: 'an1', atsScore: 82, matchScore: 67, report: REPORT, createdAt: new Date().toISOString() }, { status: 201 })),
   );
   renderPage();
@@ -145,7 +149,7 @@ test('does not fire ai_analysis_run when validation blocks the submit', async ()
   server.use(
     http.get(`${API}/applications`, () => HttpResponse.json([])),
     http.get(`${API}/documents`, () => HttpResponse.json([])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([]))),
   );
   renderPage();
   await userEvent.click(screen.getByRole('button', { name: /run analysis/i }));
@@ -159,7 +163,7 @@ test('still fires ai_analysis_run when the run fails, since failure volume is a 
     http.get(`${API}/applications`, () => HttpResponse.json([{ id: 'a1', position: 'Backend Engineer' }])),
     http.get(`${API}/applications/a1`, () => HttpResponse.json({ id: 'a1', position: 'Backend Engineer', jobDescription: 'Node.js' })),
     http.get(`${API}/documents`, () => HttpResponse.json([{ id: 'd1', name: 'Backend Resume', type: 'Resume', originalFilename: 'r.pdf', mimeType: 'application/pdf', sizeBytes: 1 }])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json(historyPage([]))),
     http.post(`${API}/analysis`, () => HttpResponse.json({ error: { message: 'boom', code: 'X' } }, { status: 500 })),
   );
   renderPage();
@@ -170,4 +174,49 @@ test('still fires ai_analysis_run when the run fails, since failure volume is a 
 
   await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
   expect(trackEvent).toHaveBeenCalledWith('ai_analysis_run', { ai: false });
+});
+
+test('past analyses ask for page 1 at size 10, newest first', async () => {
+  let seen = null;
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API}/documents`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, ({ request }) => {
+      seen = Object.fromEntries(new URL(request.url).searchParams);
+      return HttpResponse.json({
+        items: [{ id: 'an1', documentName: 'Backend Resume', position: 'Backend Eng', atsScore: 82, matchScore: 67 }],
+        page: 1, pageSize: 10, total: 34, totalPages: 4,
+      });
+    }),
+  );
+  renderPage();
+  await waitFor(() => expect(screen.getByText('1–10 of 34')).toBeInTheDocument());
+  expect(seen).toEqual({ page: '1', pageSize: '10', sort: 'createdAt', dir: 'desc' });
+});
+
+test('deleting the last row on the last page steps back a page', async () => {
+  // v2 answers a past-the-end page with items: [] and a truthful total, so the
+  // client recovers from totalPages rather than showing an empty list.
+  let deleted = false;
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API}/documents`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, ({ request }) => {
+      const p = Number(new URL(request.url).searchParams.get('page'));
+      const total = deleted ? 10 : 11;
+      const totalPages = Math.ceil(total / 10);
+      const items = p > totalPages
+        ? []
+        : [{ id: `an-p${p}`, documentName: `Doc p${p}`, position: 'Eng', atsScore: 80, matchScore: 60 }];
+      return HttpResponse.json({ items, page: p, pageSize: 10, total, totalPages });
+    }),
+    http.delete(`${API}/analysis/an-p2`, () => { deleted = true; return new HttpResponse(null, { status: 204 }); }),
+  );
+  renderPage();
+  await screen.findByText('Doc p1');
+  await userEvent.click(screen.getByRole('button', { name: 'Page 2' }));
+  await screen.findByText('Doc p2');
+  await userEvent.click(screen.getByRole('button', { name: /delete analysis of doc p2/i }));
+  await waitFor(() => expect(screen.getByText('Doc p1')).toBeInTheDocument());
+  expect(screen.getByText('1–10 of 10')).toBeInTheDocument();
 });

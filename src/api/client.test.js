@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
-import { server, API } from '../test/server';
-import api from './client';
+import { server, API, API_V2 } from '../test/server';
+import api, { apiV2, toV2Base } from './client';
 import { setAccessToken, getAccessToken } from './authToken';
 
 test('attaches the bearer token when set', async () => {
@@ -78,4 +78,32 @@ test('a server outage during refresh does NOT log out (only a real 401 does)', a
   );
   await expect(api.get('/widget')).rejects.toBeTruthy();
   expect(getAccessToken()).toBe('stale');
+});
+
+test('toV2Base rewrites the versioned base and the bare /api alias alike', () => {
+  // VITE_API_URL is '/api/v1' in CI and prod but the bare '/api' alias in the
+  // local .env, so v2 has to be derived by rewriting whichever suffix is there.
+  expect(toV2Base('http://localhost:4000/api/v1')).toBe('http://localhost:4000/api/v2');
+  expect(toV2Base('http://localhost:4000/api')).toBe('http://localhost:4000/api/v2');
+  expect(toV2Base('https://smartjobsearch-api.onrender.com/api/')).toBe('https://smartjobsearch-api.onrender.com/api/v2');
+  expect(toV2Base('http://localhost:4000/api/v2')).toBe('http://localhost:4000/api/v2');
+});
+
+test('the v2 client sends the bearer token and shares the v1 single-flight refresh', async () => {
+  // Two instances with two refresh promises is the same rotation race the
+  // single-flight guard exists to prevent — it must be shared, not duplicated.
+  let refreshCount = 0;
+  setAccessToken('expired');
+  const ok = ({ request }) => (request.headers.get('authorization') === 'Bearer fresh'
+    ? HttpResponse.json({ ok: true })
+    : HttpResponse.json({ error: { message: 'x', code: 'UNAUTHORIZED' } }, { status: 401 }));
+  server.use(
+    http.get(`${API}/widget-a`, ok),
+    http.get(`${API_V2}/widget-b`, ok),
+    http.post(`${API}/auth/refresh`, () => { refreshCount += 1; return HttpResponse.json({ accessToken: 'fresh' }); }),
+  );
+  const [a, b] = await Promise.all([api.get('/widget-a'), apiV2.get('/widget-b')]);
+  expect(a.data).toEqual({ ok: true });
+  expect(b.data).toEqual({ ok: true });
+  expect(refreshCount).toBe(1);
 });

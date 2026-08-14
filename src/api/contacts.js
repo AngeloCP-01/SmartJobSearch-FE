@@ -1,7 +1,16 @@
-import api from './client';
+import api, { apiV2 } from './client';
+import { compactParams } from './params';
 
+// No argument = every row, on v1. ApplicationDrawer calls it that way to fill
+// its contact dropdown; point this at v2 and that dropdown truncates.
 export async function listContacts(search) {
   const { data } = await api.get('/contacts', { params: search ? { search } : {} });
+  return data;
+}
+
+// One page, on v2. Blanks are dropped — `?search=` is a 400, not "no filter".
+export async function listContactsPage(params = {}) {
+  const { data } = await apiV2.get('/contacts', { params: compactParams(params) });
   return data;
 }
 export async function getContact(id) {

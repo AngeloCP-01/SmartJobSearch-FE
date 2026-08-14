@@ -1,19 +1,45 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Search, Plus, Trash2, Building2 } from 'lucide-react';
-import { listCompanies, createCompany, deleteCompany } from '../api/companies';
+import { listCompaniesPage, createCompany, deleteCompany } from '../api/companies';
 import Button from '../components/Button';
+import Pager from '../components/Pager';
 import Spinner from '../components/Spinner';
+import {
+  DEFAULT_PAGE_SIZE, pageResetter, useClampedPage, useDebouncedValue,
+} from '../lib/pagination';
 
 export default function Companies() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [name, setName] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  const { data: companies = [], isLoading } = useQuery({
-    queryKey: ['companies', search],
-    queryFn: () => listCompanies(search),
+  // Server-side search: filtering one page in memory would hide matching
+  // companies sitting on every other page.
+  const term = useDebouncedValue(search, 300).trim();
+
+  // ['companies','page',…] is a distinct key from the bare ['companies'] the
+  // drawers read, and a prefix match of it — so the invalidations below still
+  // refresh both without naming them separately.
+  const params = { page, pageSize, search: term, sort: 'createdAt', dir: 'desc' };
+  const {
+    data, isLoading, isPlaceholderData, isFetching, isError,
+  } = useQuery({
+    queryKey: ['companies', 'page', params],
+    queryFn: () => listCompaniesPage(params),
+    placeholderData: keepPreviousData,
   });
+
+  const companies = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 0;
+
+  const resetting = pageResetter(setPage);
+  const onSearchChange = resetting(setSearch);
+  const onPageSizeChange = resetting(setPageSize);
+  useClampedPage(page, totalPages, setPage);
 
   const create = useMutation({
     mutationFn: createCompany,
@@ -23,6 +49,21 @@ export default function Companies() {
     mutationFn: deleteCompany,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['companies'] }),
   });
+
+  // keepPreviousData means `data` is the PREVIOUS query's envelope while a
+  // refetch is in flight, and isLoading is false because data already exists —
+  // so `total` is stale until the fetch settles. Reading it anyway can tell a
+  // user with hundreds of companies that they have none, mid-refetch (e.g.
+  // right after clearing a search that matched nothing). `search.trim() ===
+  // term` closes a second, subtler door to the same stale total: the 300ms
+  // debounce window between clearing the input and `term` catching up, during
+  // which isPlaceholderData/isFetching have already gone false for the
+  // previous (still-stale) search's envelope. This page's empty state doesn't
+  // yet distinguish "none at all" from "no match" so the guard is inert today
+  // — it's here so that gap can be closed later without reintroducing the
+  // flash this exact combination causes on Applications' List view.
+  const settled = !isPlaceholderData && !isFetching && search.trim() === term;
+  const nothingYet = settled && total === 0 && !isError;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -35,7 +76,7 @@ export default function Companies() {
             focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           placeholder="Search companies…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
 
@@ -53,29 +94,45 @@ export default function Companies() {
         <Button type="submit" disabled={create.isPending}><Plus size={16} aria-hidden="true" /> Add company</Button>
       </form>
 
+      {isError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Couldn’t load companies. Please try again.
+        </div>
+      )}
+
       {isLoading ? (
         <Spinner center />
-      ) : companies.length === 0 ? (
+      ) : nothingYet ? (
         <div className="rounded-xl border border-dashed border-sky-200 bg-white p-10 text-center text-slate-500">
           <Building2 className="mx-auto mb-2 text-slate-300" size={28} aria-hidden="true" />
           No companies yet. Add your first one above.
         </div>
       ) : (
-        <ul className="divide-y divide-sky-100 overflow-hidden rounded-xl border border-sky-100 bg-white">
-          {companies.map((c) => (
-            <li key={c.id} className="flex items-center justify-between px-4 py-3">
-              <div>
-                <p className="font-medium text-slate-900">{c.name}</p>
-                {(c.industry || c.location) && (
-                  <p className="text-sm text-slate-500">{[c.industry, c.location].filter(Boolean).join(' · ')}</p>
-                )}
-              </div>
-              <Button variant="danger" aria-label={`Delete ${c.name}`} onClick={() => remove.mutate(c.id)}>
-                <Trash2 size={16} aria-hidden="true" />
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="divide-y divide-sky-100 overflow-hidden rounded-xl border border-sky-100 bg-white">
+            {companies.map((c) => (
+              <li key={c.id} className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <p className="font-medium text-slate-900">{c.name}</p>
+                  {(c.industry || c.location) && (
+                    <p className="text-sm text-slate-500">{[c.industry, c.location].filter(Boolean).join(' · ')}</p>
+                  )}
+                </div>
+                <Button variant="danger" aria-label={`Delete ${c.name}`} onClick={() => remove.mutate(c.id)}>
+                  <Trash2 size={16} aria-hidden="true" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <Pager
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            onPageSizeChange={onPageSizeChange}
+          />
+        </>
       )}
     </div>
   );

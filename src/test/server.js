@@ -1,9 +1,13 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
+import { toV2Base } from '../api/client';
 
 // Mirror the api client's base exactly (same env var + default) so MSW handlers
 // match whatever base the client uses — /api locally (.env) or /api/v1 in CI.
 export const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
+
+// Derived through the same helper the client uses, so the two can never drift.
+export const API_V2 = toV2Base(API);
 
 // Minimal default handlers; individual tests override with server.use(...).
 export const handlers = [
@@ -19,6 +23,8 @@ export const handlers = [
     })),
   http.get(`${API}/activity`, () =>
     HttpResponse.json({ items: [], nextCursor: null })),
+  http.get(`${API_V2}/activity`, () =>
+    HttpResponse.json({ items: [], pageSize: 25, nextCursor: null })),
   http.get(`${API}/analysis`, () => HttpResponse.json([])),
   http.get(`${API}/analysis/config`, () => HttpResponse.json({ aiAvailable: false })),
 ];
