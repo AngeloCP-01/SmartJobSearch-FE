@@ -81,17 +81,26 @@ function EditorDocumentForm({ id, initialDoc, tailoring }) {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Link to="/editor" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
           <ArrowLeft size={16} aria-hidden="true" /> Back
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-1 items-center justify-end gap-3">
           <span className="inline-flex items-center gap-1 text-sm text-slate-500" aria-live="polite">{status}</span>
-          <Button onClick={() => flush(docValue)} disabled={save.isPending || !dirty}>
+          <Button className="whitespace-nowrap" onClick={() => flush(docValue)} disabled={save.isPending || !dirty}>
             <Save size={16} aria-hidden="true" /> Save
           </Button>
-          <Button variant="subtle" onClick={() => window.print()}>
-            <Printer size={16} aria-hidden="true" /> Print / Save as PDF
+          {/* The full label wraps to four lines on a phone. aria-label keeps the
+              accessible name identical at both sizes. */}
+          <Button
+            variant="subtle"
+            aria-label="Print or save as PDF"
+            className="whitespace-nowrap"
+            onClick={() => window.print()}
+          >
+            <Printer size={16} aria-hidden="true" />
+            <span className="sm:hidden">PDF</span>
+            <span className="hidden sm:inline">Print / Save as PDF</span>
           </Button>
         </div>
       </div>

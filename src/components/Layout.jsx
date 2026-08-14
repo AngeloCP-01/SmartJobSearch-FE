@@ -1,10 +1,11 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import AppErrorBoundary from './AppErrorBoundary';
-import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, PenLine, SquarePen, CalendarClock, LogOut, Briefcase, Wand2 } from 'lucide-react';
+import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, PenLine, SquarePen, CalendarClock, LogOut, Briefcase, Wand2, Menu, X } from 'lucide-react';
 import { useQuery, useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
 import { fetchReminders } from '../api/reminders';
+import useFocusTrap from '../hooks/useFocusTrap';
 import Spinner from './Spinner';
 import PrivacyPolicyModal from './PrivacyPolicyModal';
 
@@ -55,6 +56,19 @@ function Brand() {
   );
 }
 
+function LogoutButton({ onLogout }) {
+  return (
+    <button
+      onClick={onLogout}
+      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600
+        cursor-pointer transition-colors hover:bg-red-50 hover:text-red-600
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+    >
+      <LogOut size={18} aria-hidden="true" /> Log out
+    </button>
+  );
+}
+
 function NavLinks({ onNavigate, reminderCount = 0 }) {
   return NAV.map(({ to, label, icon: Icon, end }) => (
     <NavLink key={to} to={to} end={end} className={navClass} onClick={onNavigate}>
@@ -72,12 +86,106 @@ function NavLinks({ onNavigate, reminderCount = 0 }) {
   ));
 }
 
+// Mobile primary navigation. The nav is 13 items deep — too many to lay out as
+// a horizontal strip without either shrinking targets below 44px or hiding most
+// of them behind a sideways scroll, so on small screens it becomes the same
+// vertical list the desktop sidebar uses, in a slide-over drawer.
+function MobileNav({ open, onClose, reminderCount, user, onLogout }) {
+  const ref = useRef(null);
+  useFocusTrap(ref, open, onClose);
+
+  // Callers pass an inline arrow, so hold it in a ref to keep the effects below
+  // from re-running on every parent render (same reasoning as useFocusTrap).
+  const closeRef = useRef(onClose);
+  useEffect(() => { closeRef.current = onClose; });
+
+  // Lock the page behind the drawer so a scroll gesture over the scrim doesn't
+  // move the content underneath it.
+  useEffect(() => {
+    if (!open) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [open]);
+
+  // The drawer is display:none from md up, where the persistent sidebar takes
+  // over. Without this, rotating a phone to landscape or resizing past the
+  // breakpoint leaves it open-but-invisible — still holding the scroll lock and
+  // the focus trap, with no visible control to dismiss it.
+  useEffect(() => {
+    if (!open) return undefined;
+    const desktop = window.matchMedia('(min-width: 48rem)');
+    const sync = () => { if (desktop.matches) closeRef.current(); };
+    sync();
+    desktop.addEventListener('change', sync);
+    return () => desktop.removeEventListener('change', sync);
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-40 md:hidden">
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        className="absolute inset-0 bg-slate-900/40 animate-[scrim-in_150ms_ease-out] motion-reduce:animate-none"
+      />
+      {/* h-dvh, not h-full: `fixed inset-0` resolves against the *layout*
+          viewport, which on mobile is taller than the visible area while the
+          URL bar is showing — the bottom of the panel ends up behind browser
+          chrome. dvh tracks the visible area instead. */}
+      <div
+        ref={ref}
+        id="mobile-nav"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Primary navigation"
+        className="relative flex h-dvh w-72 max-w-[85%] flex-col border-r border-sky-100
+          bg-white animate-[drawer-in_180ms_ease-out] motion-reduce:animate-none"
+      >
+        <div className="flex shrink-0 items-center justify-between p-3 pb-2">
+          <Brand />
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="grid h-11 w-11 place-items-center rounded-lg text-slate-500 cursor-pointer
+              transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+        {/* Only the link list scrolls. min-h-0 is required — without it this
+            flex item refuses to shrink below its content and overflows the
+            panel instead of scrolling. py-3 puts each row at a 44px target. */}
+        <nav
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 [&>a]:py-3"
+          aria-label="Primary"
+        >
+          <NavLinks reminderCount={reminderCount} onNavigate={onClose} />
+        </nav>
+        {/* Pinned, never scrolled away: on a short screen the 13-item list
+            pushed Log out past the bottom edge and out of reach. The bottom
+            padding clears the iOS home indicator. */}
+        <div className="shrink-0 border-t border-sky-100 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <p className="px-2 text-xs text-slate-500 truncate" title={user?.email}>{user?.email}</p>
+          <LogoutButton onLogout={onLogout} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const { data: reminders } = useQuery({ queryKey: ['reminders'], queryFn: fetchReminders });
   const reminderCount = reminders?.counts?.total ?? 0;
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+
+  // Backstop for navigation that doesn't come from a drawer link (redirects,
+  // back/forward) — the drawer should never outlive the page it opened over.
+  useEffect(() => { setNavOpen(false); }, [pathname]);
   return (
     <div className="min-h-dvh md:flex">
       <TopProgressBar />
@@ -93,28 +201,41 @@ export default function Layout() {
         <nav className="flex flex-col gap-1" aria-label="Primary"><NavLinks reminderCount={reminderCount} /></nav>
         <div className="mt-auto border-t border-sky-100 pt-3">
           <p className="px-2 text-xs text-slate-500 truncate" title={user?.email}>{user?.email}</p>
-          <button
-            onClick={logout}
-            className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600
-              cursor-pointer transition-colors hover:bg-red-50 hover:text-red-600
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-          >
-            <LogOut size={18} aria-hidden="true" /> Log out
-          </button>
+          <LogoutButton onLogout={logout} />
         </div>
       </aside>
 
-      {/* Top bar (mobile) */}
+      {/* Top bar (mobile) — just the drawer trigger and the brand. Log out lives
+          inside the drawer, next to the account it signs out of. */}
       <header className="md:hidden sticky top-0 z-20 border-b border-sky-100 bg-white">
-        <div className="flex items-center justify-between px-4 py-2">
-          <Brand />
-          <button onClick={logout} aria-label="Log out"
-            className="rounded-lg p-2 text-slate-600 hover:bg-red-50 hover:text-red-600 cursor-pointer">
-            <LogOut size={18} aria-hidden="true" />
+        <div className="flex items-center gap-1 px-2 py-1.5">
+          <button
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={navOpen}
+            aria-controls="mobile-nav"
+            className="relative grid h-11 w-11 place-items-center rounded-lg text-slate-600 cursor-pointer
+              transition-colors hover:bg-sky-50 hover:text-sky-800
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            <Menu size={22} aria-hidden="true" />
+            {/* The count itself is on the Reminders row inside the drawer; out
+                here a dot is enough to say "something is waiting". */}
+            {reminderCount > 0 && (
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-sky-600 ring-2 ring-white" aria-hidden="true" />
+            )}
           </button>
+          <Brand />
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Primary"><NavLinks reminderCount={reminderCount} /></nav>
       </header>
+
+      <MobileNav
+        open={navOpen}
+        onClose={() => setNavOpen(false)}
+        reminderCount={reminderCount}
+        user={user}
+        onLogout={logout}
+      />
 
       <main id="main" className="flex-1 p-5 md:p-8">
         <AppErrorBoundary key={pathname} variant="page">

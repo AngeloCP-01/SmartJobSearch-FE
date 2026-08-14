@@ -66,13 +66,15 @@ export default function Interviews() {
           value={scheduledAt}
           onChange={(e) => setScheduledAt(e.target.value)}
         />
+        {/* Full width on phones — sharing a row with the submit button leaves it
+            too narrow to read its own placeholder. */}
         <input
-          className="flex-1 min-w-40 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="w-full sm:flex-1 sm:min-w-40 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           placeholder="Interviewer (optional)"
           value={interviewer}
           onChange={(e) => setInterviewer(e.target.value)}
         />
-        <Button type="submit" disabled={create.isPending}><Plus size={16} aria-hidden="true" /> Add interview</Button>
+        <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending}><Plus size={16} aria-hidden="true" /> Add interview</Button>
       </form>
 
       {interviews.length === 0 ? (
@@ -82,11 +84,13 @@ export default function Interviews() {
         </div>
       ) : (
         <ul className="divide-y divide-sky-100 overflow-hidden rounded-xl border border-sky-100 bg-white">
+          {/* Rows stack on phones: side by side, the role title is squeezed into
+              a three-line wrap and the controls spill past the screen edge. */}
           {interviews.map((i) => (
-            <li key={i.id} className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">{i.type}</span>
-                <div>
+            <li key={i.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="shrink-0 rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">{i.type}</span>
+                <div className="min-w-0">
                   <p className="font-medium text-slate-900">{positionFor(i.applicationId) || 'Application'}</p>
                   <p className="text-sm text-slate-500">
                     {i.interviewer || 'Interviewer TBD'}
@@ -94,7 +98,7 @@ export default function Interviews() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-normal">
                 <select
                   aria-label={`Result for ${positionFor(i.applicationId) || 'interview'}`}
                   className={`rounded-full border-0 px-2.5 py-1 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${RESULT_STYLES[i.result] || 'bg-slate-100 text-slate-600'}`}

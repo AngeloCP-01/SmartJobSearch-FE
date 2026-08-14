@@ -49,7 +49,9 @@ export default function Editor() {
         className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-sky-100 bg-white p-4 shadow-sm"
         onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
       >
-        <label className="flex-1 text-sm font-medium text-slate-600">
+        {/* Full width on phones — beside the Type select the title field is too
+            narrow to show what it's for. */}
+        <label className="w-full text-sm font-medium text-slate-600 sm:w-auto sm:flex-1">
           New document
           <input
             aria-label="New document title"
@@ -96,11 +98,16 @@ export default function Editor() {
               <button
                 type="button"
                 onClick={() => navigate(`/editor/${d.id}`)}
-                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-left"
               >
-                <FileText size={18} className="shrink-0 text-slate-400" aria-hidden="true" />
-                <span className="truncate font-medium text-slate-900">{d.title}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${TYPE_STYLE[d.type]}`}>{TYPE_LABEL[d.type]}</span>
+                {/* Icon and title claim a full line on phones, pushing the badge
+                    below them. Sharing one line truncated the title to a few
+                    letters; from sm up there's room and the badge sits inline. */}
+                <span className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1">
+                  <FileText size={18} className="shrink-0 text-slate-400" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate font-medium text-slate-900">{d.title}</span>
+                </span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${TYPE_STYLE[d.type]}`}>{TYPE_LABEL[d.type]}</span>
               </button>
               <div className="flex shrink-0 items-center gap-1">
                 <Button variant="subtle" aria-label={`Edit ${d.title}`} onClick={() => navigate(`/editor/${d.id}`)}><Pencil size={16} /></Button>

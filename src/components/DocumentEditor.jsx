@@ -129,7 +129,12 @@ export default function DocumentEditor({ content, onChange, tailoring }) {
         <EditorToolbar editor={editor} onToggleSearch={() => setSearchOpen((o) => !o)} />
       </div>
 
-      <div className="editor-canvas-backdrop rounded-b-xl border border-t-0 border-sky-100 bg-slate-100 p-6">
+      {/* The sheet is a fixed paper width (8.5in ≈ 816px) because the point of
+          this view is page-accurate layout. Narrower than that, the overflow has
+          to be contained here — otherwise the whole app, nav included, scrolls
+          sideways. print:overflow-visible keeps the scrollbox from clipping the
+          printed page. */}
+      <div className="editor-canvas-backdrop overflow-x-auto print:overflow-visible rounded-b-xl border border-t-0 border-sky-100 bg-slate-100 p-3 sm:p-6">
         <div className={tailoring && showTailoring ? 'flex flex-wrap items-start gap-4' : ''}>
           <div className={sheetClass}>
             <EditorContent editor={editor} />

@@ -188,9 +188,16 @@ export function sortApps(apps, { key, dir }) {
 
 function ListView({ apps, sort, onSort, onOpen, onStatusChange }) {
   const rows = sortApps(apps, sort);
+  // `relative` matters: the sr-only header label is position:absolute, and
+  // without a positioned ancestor it resolves against the initial containing
+  // block — escaping this scrollbox and stretching the whole document's scroll
+  // width to the table's, which scrolls the entire app sideways.
   return (
-    <div className="overflow-x-auto rounded-xl border border-sky-100 bg-white shadow-sm">
-      <table className="w-full text-sm">
+    <div className="relative overflow-x-auto rounded-xl border border-sky-100 bg-white shadow-sm">
+      {/* min-width keeps the columns readable and makes the sideways scroll a
+          deliberate gesture. Without it the table tries to fit a 375px screen
+          and squeezes every cell into a multi-line wrap *and* still overflows. */}
+      <table className="w-full min-w-[44rem] text-sm">
         <thead>
           <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
             {COLUMNS.map((c) => {
@@ -303,7 +310,9 @@ export default function Applications() {
     <div>
       <h1 className="mb-5 text-2xl font-bold text-slate-900">Applications</h1>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative max-w-md flex-1">
+        {/* Search gets its own row on phones; sharing one with a status select
+            leaves it too narrow to show a search term. */}
+        <div className="relative w-full sm:max-w-md sm:flex-1">
           <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
           <input
             className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-slate-900
@@ -314,9 +323,12 @@ export default function Applications() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        {/* The two filters share one full-width row on phones. `sm:contents`
+            dissolves this wrapper from sm up, so the desktop bar is unchanged. */}
+        <div className="flex w-full gap-3 sm:contents">
         <select
           aria-label="Filter by status"
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="min-w-0 flex-1 sm:flex-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -325,13 +337,14 @@ export default function Applications() {
         </select>
         <select
           aria-label="Filter by company"
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="min-w-0 flex-1 sm:flex-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           value={companyFilter}
           onChange={(e) => setCompanyFilter(e.target.value)}
         >
           <option value="">All companies</option>
           {companyOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        </div>
         {hasFilters && (
           <button type="button" onClick={clearFilters} className="text-sm font-medium text-sky-700 hover:underline cursor-pointer">
             Clear

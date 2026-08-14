@@ -213,16 +213,18 @@ export default function Documents() {
       ) : (
         <ul className="space-y-2">
           {docs.map((d) => (
-            <li key={d.id} className="flex items-start justify-between rounded-xl border border-sky-100 bg-white px-4 py-3 shadow-sm">
+            <li key={d.id} className="flex flex-col gap-3 rounded-xl border border-sky-100 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium text-slate-900">{d.name}</p>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${TYPE_STYLE[d.type] || TYPE_STYLE.Other}`}>{TYPE_LABEL[d.type] || d.type}</span>
                 </div>
                 <p className="text-sm text-slate-500">{[d.originalFilename, fmtSize(d.sizeBytes)].filter(Boolean).join(' · ')}</p>
                 {d.notes && <p className="mt-0.5 text-sm text-slate-500">{d.notes}</p>}
               </div>
-              <div className="flex shrink-0 items-center gap-1">
+              {/* Four icon buttons need ~180px; on a phone that leaves the name
+                  a sliver, so they drop to their own row below it. */}
+              <div className="flex shrink-0 items-center justify-end gap-1">
                 {OPENABLE.has(extOf(d.originalFilename)) && (
                   <Button variant="subtle" aria-label={`Open ${d.name} in editor`}
                     disabled={openingId === d.id} onClick={() => onOpenInEditor(d)}>
