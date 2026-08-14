@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { History } from 'lucide-react';
-import { fetchActivity } from '../api/activity';
+import { fetchActivityPage } from '../api/activity';
+import { DEFAULT_PAGE_SIZE } from '../lib/pagination';
 import { dayBucket } from '../lib/activityCopy';
 import ActivityRow from '../components/ActivityRow';
 import Button from '../components/Button';
@@ -9,7 +10,7 @@ import Spinner from '../components/Spinner';
 export default function Activity() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useInfiniteQuery({
     queryKey: ['activity'],
-    queryFn: ({ pageParam }) => fetchActivity({ before: pageParam }),
+    queryFn: ({ pageParam }) => fetchActivityPage({ before: pageParam, pageSize: DEFAULT_PAGE_SIZE }),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });

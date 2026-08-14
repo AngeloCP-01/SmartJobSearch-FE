@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Briefcase, TrendingUp, CalendarClock, Award, BarChart3, History, Plus, ArrowRight } from 'lucide-react';
 import { fetchSummary } from '../api/dashboard';
-import { fetchActivity } from '../api/activity';
+import { fetchActivityPage } from '../api/activity';
 import { STATUSES } from '../lib/applicationStatus';
 import ActivityRow from '../components/ActivityRow';
 import ApplicationDrawer from '../components/ApplicationDrawer';
@@ -75,7 +75,9 @@ export default function Dashboard() {
   const qc = useQueryClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { data, isLoading } = useQuery({ queryKey: ['dashboard'], queryFn: fetchSummary });
-  const { data: activity } = useQuery({ queryKey: ['activity', 'recent'], queryFn: () => fetchActivity() });
+  // A six-item preview, so ask for the smallest allowlisted page rather than
+  // pulling a default-sized one and throwing most of it away.
+  const { data: activity } = useQuery({ queryKey: ['activity', 'recent'], queryFn: () => fetchActivityPage({ pageSize: 10 }) });
 
   const get = (s) => (data?.byStatus?.[s] || 0);
   const inProgress = ACTIVE.reduce((n, s) => n + get(s), 0);

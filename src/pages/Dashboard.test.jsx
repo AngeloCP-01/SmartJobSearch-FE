@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { server, API } from '../test/server';
+import { server, API, API_V2 } from '../test/server';
 import Dashboard from './Dashboard';
 
 function renderPage() {
@@ -23,7 +23,7 @@ test('shows totals, derived stats, pipeline and upcoming interviews from the sum
       byStatus: { Applied: 3, Draft: 2, Offer: 1 },
       upcomingInterviews: [{ id: 'i1', type: 'HR', scheduledAt: '2026-07-01T10:00:00.000Z' }],
     })),
-    http.get(`${API}/activity`, () => HttpResponse.json({ items: [], nextCursor: null })),
+    http.get(`${API_V2}/activity`, () => HttpResponse.json({ items: [], pageSize: 10, nextCursor: null })),
   );
   renderPage();
   await waitFor(() => expect(screen.getByText('5')).toBeInTheDocument()); // Total
