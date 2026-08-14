@@ -58,6 +58,7 @@ List + search + create + delete.
 @dnd-kit board, one column per status, optimistic `PATCH /:id/status` on drop.
 **List view (2026-06-25):** `Board | List` toggle (persisted to `localStorage`); sortable table with an inline status quick-change `<select>` (same optimistic mutation as drag), click-row-to-open, and company-aware search.
 **Filters (2026-06-25):** Status + Company dropdowns next to search, applied across both views (board narrows to the chosen status column); company options derived from loaded apps; a Clear link resets all filters.
+**List pagination on `/api/v2` (2026-08-14, V3-29):** the List view now fetches one server-paginated page (10/25/50/100, `keepPreviousData`) instead of every row; the Kanban board stays unpaginated on purpose (it needs every row for drag/drop). Salary is displayed but no longer sortable — it isn't in v2's sort allowlist, and sorting one page would report the page's max, not the overall max. The Company filter now reads the separate all-rows `['companies']` query instead of deriving its options from the loaded (now partial) rows, so it still offers every company, not just page 1's. `listApplications()` and the bare `['applications']` key are untouched and still feed the four "pick an application" dropdowns (Analysis/Interviews/Tailor/Cover Letter) — the paginated call lives under a distinct query key, guarded by `src/pages/applicationDropdowns.test.jsx`.
 
 ## FE-4 — Interviews ☑
 List + create (application select, type, interviewer).
