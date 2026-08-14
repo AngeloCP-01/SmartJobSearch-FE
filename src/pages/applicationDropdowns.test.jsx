@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { server, API } from '../test/server';
+import { server, API, API_V2 } from '../test/server';
 import Analysis from './Analysis';
 import Interviews from './Interviews';
 import TailorResume from './TailorResume';
@@ -36,7 +36,7 @@ beforeEach(() => {
     http.get(`${API}/documents`, () => HttpResponse.json([])),
     http.get(`${API}/interviews`, () => HttpResponse.json([])),
     http.get(`${API}/companies`, () => HttpResponse.json([])),
-    http.get(`${API}/analysis`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/analysis`, () => HttpResponse.json({ items: [], page: 1, pageSize: 10, total: 0, totalPages: 0 })),
     http.get(`${API}/analysis/config`, () => HttpResponse.json({ aiAvailable: false })),
   );
 });
