@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, delay } from 'msw';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -342,7 +342,10 @@ test('changing the page size sends an allowlisted value and returns to page 1', 
   await waitFor(() => expect(seen.at(-1).page).toBe('2'));
   await userEvent.selectOptions(screen.getByLabelText(/rows per page/i), '50');
   // A bigger page renumbers everything, so page 2 is meaningless — go back to 1.
+  // The reset happens in the change handler, not an effect after the fact, so
+  // no request for the stale page-2-with-size-50 combination should ever fire.
   await waitFor(() => expect(seen.at(-1)).toEqual({ page: '1', pageSize: '50' }));
+  expect(seen).not.toContainEqual({ page: '2', pageSize: '50' });
 });
 
 test('search is debounced into one request and filtered by the server', async () => {
@@ -381,6 +384,10 @@ test('a status filter resets the pager back to page 1', async () => {
   await userEvent.selectOptions(screen.getByLabelText(/filter by status/i), 'Offer');
   // Otherwise a filter that shrinks the set strands the user on an empty page 7.
   await waitFor(() => expect(seen.at(-1)).toEqual({ page: '1', status: 'Offer' }));
+  // The reset happens in the change handler, not an effect after the fact, so
+  // a request for the stale {page: 2, status: 'Offer'} combination should
+  // never have gone out.
+  expect(seen).not.toContainEqual({ page: '2', status: 'Offer' });
 });
 
 test('Salary is shown but is not a sort control', async () => {
@@ -415,4 +422,54 @@ test('sorting by a column asks the server, not the client', async () => {
   await screen.findByText('Backend Eng');
   await userEvent.click(screen.getByRole('button', { name: /sort by position/i }));
   await waitFor(() => expect(seen).toEqual({ sort: 'position', dir: 'asc' }));
+});
+
+test('clearing a filter never flashes "No applications yet" over real data via a stale placeholder', async () => {
+  // keepPreviousData renders the PREVIOUS envelope while a genuinely new query
+  // key (never fetched before) is in flight. Reaching such a key requires a
+  // combination — here status+sort — that was never visited unfiltered: the
+  // mount fetch warms {status:'',sort:applicationDate}, filtering to Offer
+  // warms {status:'Offer',sort:applicationDate} (total 0), then sorting by
+  // position while still filtered warms {status:'Offer',sort:position} (also
+  // total 0, real, settled). Clearing the filter from there targets
+  // {status:'',sort:position} — never cached — so its placeholder is the
+  // just-settled Offer/position total of 0, and hasFilters flips false the
+  // instant Clear is clicked. A naive `total === 0 && !hasFilters` reads that
+  // stale placeholder zero and tells a user with 137 applications that they
+  // have none. (Sort, not page size, drives the mismatch here because the
+  // Pager — and so the page-size control — is hidden while total is 0.)
+  server.use(
+    http.get(`${API}/applications`, () => HttpResponse.json([])),
+    http.get(`${API_V2}/applications`, async ({ request }) => {
+      const status = new URL(request.url).searchParams.get('status');
+      if (status === 'Offer') {
+        return HttpResponse.json({ items: [], page: 1, pageSize: 25, total: 0, totalPages: 0 });
+      }
+      // A real delay, not an instant microtask resolution: without it, the
+      // in-flight placeholder render and the final resolved render land in
+      // the same act() flush and a synchronous assertion can never observe
+      // the intermediate (buggy) state — even though React did render it.
+      await delay(60);
+      return HttpResponse.json({
+        items: [{ id: 'a1', position: 'Backend Eng', status: 'Applied' }],
+        page: 1, pageSize: 25, total: 137, totalPages: 6,
+      });
+    }),
+  );
+  localStorage.setItem('applicationsView', 'list');
+  renderPage();
+  await screen.findByText('Backend Eng');
+  await userEvent.selectOptions(screen.getByLabelText(/filter by status/i), 'Offer');
+  await waitFor(() => expect(screen.getByText('No applications match your filters.')).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /sort by position/i }));
+  await waitFor(() => expect(screen.getByText('No applications match your filters.')).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /^clear$/i }));
+  // Checked repeatedly across the in-flight window (the delayed request is
+  // still pending here), not just at the end — the bug was a mid-transition
+  // flash, not a final-state error.
+  expect(screen.queryByText(/no applications yet/i)).not.toBeInTheDocument();
+  await new Promise((r) => { setTimeout(r, 25); });
+  expect(screen.queryByText(/no applications yet/i)).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.getByText('Backend Eng')).toBeInTheDocument());
+  expect(screen.queryByText(/no applications yet/i)).not.toBeInTheDocument();
 });

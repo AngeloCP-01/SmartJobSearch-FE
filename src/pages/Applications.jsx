@@ -315,9 +315,18 @@ export default function Applications() {
 
   useEffect(() => { localStorage.setItem('applicationsView', view); }, [view]);
 
-  // Anything that reshapes the result set invalidates the page number —
-  // otherwise a filter that shrinks the set strands the user on an empty page 7.
-  useEffect(() => { setPage(1); }, [term, statusFilter, companyFilter, pageSize, sort.key, sort.dir]);
+  // Reset the page as part of the state change, not in an effect afterwards.
+  // useQuery's own internal effect runs on every render in hook-declaration
+  // order — it is declared above, before any effect we could add here — so an
+  // effect-based reset would dispatch one request for the stale page *before*
+  // it runs, and keepPreviousData would happily render that response on the
+  // way past. Resetting inside the handler means no render ever exists with a
+  // new filter and an old page.
+  const resetting = (set) => (value) => { set(value); setPage(1); };
+  const onSearchChange = resetting(setSearch);
+  const onStatusFilterChange = resetting(setStatusFilter);
+  const onCompanyFilterChange = resetting(setCompanyFilter);
+  const onPageSizeChange = resetting(setPageSize);
   useClampedPage(page, list.data?.totalPages ?? 0, setPage);
 
   const apps = board.data ?? [];
@@ -329,18 +338,26 @@ export default function Applications() {
     return true;
   });
   const shownStatuses = statusFilter ? [statusFilter] : STATUSES;
-  const clearFilters = () => { setSearch(''); setStatusFilter(''); setCompanyFilter(''); };
+  const clearFilters = () => { setSearch(''); setStatusFilter(''); setCompanyFilter(''); setPage(1); };
 
   const rows = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
   const totalPages = list.data?.totalPages ?? 0;
   const isLoading = isList ? list.isLoading : board.isLoading;
-  const nothingYet = isList ? total === 0 && !hasFilters : apps.length === 0;
-  const nothingMatched = isList ? total === 0 && hasFilters : apps.length > 0 && visible.length === 0;
+  // keepPreviousData means list.data is the PREVIOUS page's envelope while a
+  // refetch is in flight, and isLoading is false because data already exists —
+  // so total/totalPages are stale until the fetch settles. Reading them anyway
+  // can tell a user with 137 applications that they have none, mid-refetch.
+  const settled = isList ? !list.isPlaceholderData && !list.isFetching : true;
+  const nothingYet = isList ? settled && total === 0 && !hasFilters : apps.length === 0;
+  const nothingMatched = isList ? settled && total === 0 && hasFilters : apps.length > 0 && visible.length === 0;
 
   const move = useMutation(moveMutationOptions(qc));
   const onStatusChange = (id, status) => move.mutate({ id, status });
-  const onSort = (key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+  const onSort = (key) => {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+    setPage(1);
+  };
 
   function onDragEnd(event) {
     applyDrop(
@@ -363,7 +380,7 @@ export default function Applications() {
             placeholder="Search applications…"
             aria-label="Search applications"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
         {/* The two filters share one full-width row on phones. `sm:contents`
@@ -373,7 +390,7 @@ export default function Applications() {
           aria-label="Filter by status"
           className="min-w-0 flex-1 sm:flex-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => onStatusFilterChange(e.target.value)}
         >
           <option value="">All statuses</option>
           {STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
@@ -382,7 +399,7 @@ export default function Applications() {
           aria-label="Filter by company"
           className="min-w-0 flex-1 sm:flex-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           value={companyFilter}
-          onChange={(e) => setCompanyFilter(e.target.value)}
+          onChange={(e) => onCompanyFilterChange(e.target.value)}
         >
           <option value="">All companies</option>
           {companyOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -426,7 +443,7 @@ export default function Applications() {
                 total={total}
                 totalPages={totalPages}
                 onPageChange={setPage}
-                onPageSizeChange={setPageSize}
+                onPageSizeChange={onPageSizeChange}
               />
             </>
           ) : (
