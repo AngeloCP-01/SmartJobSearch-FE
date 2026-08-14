@@ -196,10 +196,21 @@ export default function Layout() {
         Skip to content
       </a>
       {/* Sidebar (desktop) */}
-      <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col gap-1 border-r border-sky-100 bg-white p-3">
-        <div className="mb-4"><Brand /></div>
-        <nav className="flex flex-col gap-1" aria-label="Primary"><NavLinks reminderCount={reminderCount} /></nav>
-        <div className="mt-auto border-t border-sky-100 pt-3">
+      {/* The shell is a flex row, so a plain aside stretches to the height of
+          <main> — on a long page that pushes Log out a full page-scroll below
+          the fold. `sticky top-0` + an explicit viewport height detaches the
+          sidebar from content length: it stays put while main scrolls, and the
+          account block sits at the bottom of the *viewport*, not the document.
+          `self-start` stops the row's default stretch from re-inflating it. */}
+      <aside className="hidden md:sticky md:top-0 md:flex md:h-dvh md:w-60 md:shrink-0 md:flex-col md:self-start gap-1 border-r border-sky-100 bg-white p-3">
+        <div className="mb-4 shrink-0"><Brand /></div>
+        {/* min-h-0 matters: without it a flex item refuses to shrink below its
+            content, so a nav taller than the viewport would overflow the sidebar
+            instead of scrolling inside it. Same pattern as the mobile drawer. */}
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto" aria-label="Primary">
+          <NavLinks reminderCount={reminderCount} />
+        </nav>
+        <div className="shrink-0 border-t border-sky-100 pt-3">
           <p className="px-2 text-xs text-slate-500 truncate" title={user?.email}>{user?.email}</p>
           <LogoutButton onLogout={logout} />
         </div>
