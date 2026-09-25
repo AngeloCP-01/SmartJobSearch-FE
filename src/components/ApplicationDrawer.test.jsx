@@ -128,6 +128,41 @@ test('blocks save when salary min exceeds max', async () => {
   expect(patched).toBe(false);
 });
 
+test('saving includes the asking salary field', async () => {
+  let body = null;
+  server.use(http.patch(`${API}/applications/a1`, async ({ request }) => {
+    body = await request.json();
+    return HttpResponse.json({ ...app, ...body, company: null });
+  }));
+  renderDrawer({ application: app });
+  await userEvent.type(screen.getByLabelText(/asking salary/i), '90000');
+  await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+  await waitFor(() => expect(body).not.toBeNull());
+  expect(body.askingSalary).toBe(90000);
+});
+
+test('edit mode pre-fills asking salary from the application', async () => {
+  renderDrawer({ application: { ...app, askingSalary: 95000 } });
+  await waitFor(() => expect(screen.getByLabelText(/asking salary/i)).toHaveValue(95000));
+});
+
+test('changing status to Applied auto-fills an empty applied date', async () => {
+  const draft = { ...app, status: 'Draft', applicationDate: null };
+  renderDrawer({ application: draft });
+  await waitFor(() => expect(screen.getByLabelText(/applied date/i)).toHaveValue(''));
+  await userEvent.selectOptions(screen.getByLabelText(/^status$/i), 'Applied');
+  const today = new Date().toISOString().slice(0, 10);
+  expect(screen.getByLabelText(/applied date/i)).toHaveValue(today);
+});
+
+test('changing status to Applied does not overwrite an existing applied date', async () => {
+  const draft = { ...app, status: 'Draft', applicationDate: '2026-01-01T00:00:00.000Z' };
+  renderDrawer({ application: draft });
+  await waitFor(() => expect(screen.getByLabelText(/applied date/i)).toHaveValue('2026-01-01'));
+  await userEvent.selectOptions(screen.getByLabelText(/^status$/i), 'Applied');
+  expect(screen.getByLabelText(/applied date/i)).toHaveValue('2026-01-01');
+});
+
 test('delete asks for confirmation then DELETEs', async () => {
   let deleted = false;
   server.use(http.delete(`${API}/applications/a1`, () => { deleted = true; return new HttpResponse(null, { status: 204 }); }));

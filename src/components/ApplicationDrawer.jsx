@@ -36,6 +36,7 @@ function initialForm(app) {
     applicationDate: toDateInput(app?.applicationDate),
     salaryMin: app?.salaryMin ?? '',
     salaryMax: app?.salaryMax ?? '',
+    askingSalary: app?.askingSalary ?? '',
     source: app?.source || '',
     workMode: app?.workMode || '',
     jobDescription: app?.jobDescription || '',
@@ -120,6 +121,13 @@ export default function ApplicationDrawer({ application, open, onClose }) {
   const activityItems = activity?.items || [];
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+  // Mirrors the backend's auto-set-on-Applied rule so the drawer reflects the
+  // date it's about to save, without waiting for a round trip.
+  const setStatus = (v) => setForm((f) => (
+    v === 'Applied' && !f.applicationDate
+      ? { ...f, status: v, applicationDate: toDateInput(new Date()) }
+      : { ...f, status: v }
+  ));
 
   // Apply AI-extracted posting fields onto the form. Only overwrites a field when
   // the parser found a value, so a re-parse never blanks something you typed.
@@ -240,6 +248,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
       applicationDate: form.applicationDate || undefined,
       salaryMin: min,
       salaryMax: max,
+      askingSalary: num(form.askingSalary),
       source: form.source || undefined,
       workMode: form.workMode || null,
       jobDescription: form.jobDescription || undefined,
@@ -321,7 +330,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
           <label className="block mb-4">
             <span className="block text-sm font-medium text-slate-700 mb-1.5">Status</span>
             <select aria-label="Status" className={inputClass}
-              value={form.status} onChange={(e) => set('status')(e.target.value)}>
+              value={form.status} onChange={(e) => setStatus(e.target.value)}>
               {STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
             </select>
           </label>
@@ -330,6 +339,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
           <div className="flex gap-3">
             <Field label="Min salary" name="salaryMin" type="number" value={form.salaryMin} onChange={set('salaryMin')} />
             <Field label="Max salary" name="salaryMax" type="number" value={form.salaryMax} onChange={set('salaryMax')} />
+            <Field label="Asking salary" name="askingSalary" type="number" value={form.askingSalary} onChange={set('askingSalary')} />
           </div>
           <div className="mb-4">
             <div className="mb-1.5 flex items-center justify-between">
