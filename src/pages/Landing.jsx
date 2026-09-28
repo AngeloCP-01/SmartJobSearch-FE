@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Briefcase, KanbanSquare, ScanSearch, CalendarClock, FileText, Github, ArrowRight } from 'lucide-react';
+import { KanbanSquare, ScanSearch, CalendarClock, FileText, Github, ArrowRight } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useDemoLogin } from '../lib/demo';
 import Button from '../components/Button';
@@ -27,9 +27,7 @@ export default function Landing() {
       {/* Header */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-sky-700 text-white">
-            <Briefcase size={18} aria-hidden="true" />
-          </span>
+          <img src="/favicon.svg" alt="" aria-hidden="true" className="h-8 w-8" />
           <span className="font-bold text-slate-900">JobTrail</span>
         </div>
         <div className="flex items-center gap-2">

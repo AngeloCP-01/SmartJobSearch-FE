@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import AppErrorBoundary from './AppErrorBoundary';
-import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, PenLine, SquarePen, CalendarClock, LogOut, Briefcase, Wand2, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Bell, LineChart, KanbanSquare, Building2, Users, FileText, History, ScanSearch, PenLine, SquarePen, CalendarClock, LogOut, Wand2, Menu, X } from 'lucide-react';
 import { useQuery, useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
 import { fetchReminders } from '../api/reminders';
@@ -48,9 +48,7 @@ function navClass({ isActive }) {
 function Brand() {
   return (
     <div className="flex items-center gap-2 px-2 py-1">
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-sky-700 text-white">
-        <Briefcase size={18} aria-hidden="true" />
-      </span>
+      <img src="/favicon.svg" alt="" aria-hidden="true" className="h-8 w-8" />
       <span className="font-bold text-slate-900">JobTrail</span>
     </div>
   );
