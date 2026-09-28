@@ -13,6 +13,7 @@ import useFocusTrap from '../hooks/useFocusTrap';
 import ActivityRow from './ActivityRow';
 import { STATUSES } from '../lib/applicationStatus';
 import { apiErrorMessage } from '../lib/apiError';
+import { refreshApplications } from '../lib/applicationsCache';
 import Field from './Field';
 import Button from './Button';
 
@@ -159,7 +160,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
     mutationFn: (body) => (isEdit ? updateApplication(application.id, body) : createApplication(body)),
     onSuccess: () => {
       if (!isEdit) trackEvent('application_created'); // guard: this mutation also handles edits
-      qc.invalidateQueries({ queryKey: ['applications'] });
+      refreshApplications(qc);
       qc.invalidateQueries({ queryKey: ['activity'] });
       onClose();
     },
@@ -168,7 +169,7 @@ export default function ApplicationDrawer({ application, open, onClose }) {
 
   const del = useMutation({
     mutationFn: () => deleteApplication(application.id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['applications'] }); qc.invalidateQueries({ queryKey: ['activity'] }); onClose(); },
+    onSuccess: () => { refreshApplications(qc); qc.invalidateQueries({ queryKey: ['activity'] }); onClose(); },
     onError: (e) => setError(e.response?.data?.error?.message || 'Could not delete'),
   });
 

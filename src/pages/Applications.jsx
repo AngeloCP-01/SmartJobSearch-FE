@@ -3,9 +3,12 @@ import {
   DndContext, useDraggable, useDroppable,
   PointerSensor, KeyboardSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import {
+  useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData,
+} from '@tanstack/react-query';
 import { Plus, AlertCircle, Maximize2, Search, LayoutGrid, List, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-import { listApplications, listApplicationsPage, updateStatus } from '../api/applications';
+import { listApplicationsPage, listApplicationsBoard, updateStatus } from '../api/applications';
+import { refreshApplications } from '../lib/applicationsCache';
 import { listCompanies } from '../api/companies';
 import Button from '../components/Button';
 import ApplicationDrawer from '../components/ApplicationDrawer';
@@ -53,15 +56,59 @@ export function applyDrop({ activeId, overId }, doUpdate) {
   return doUpdate(activeId, overId);
 }
 
-// The same application can sit in two caches at once: the bare ['applications']
-// array the board and the four dropdowns read, and the ['applications','page',…]
-// envelope the List view reads. An optimistic move has to patch whichever is
-// mounted, so the updater is shape-aware rather than array-only.
+// The same application can sit in three caches at once: the bare
+// ['applications'] array the four dropdowns read, the ['applications','page',…]
+// envelope the List view reads, and the ['applications','board',status,…]
+// infinite envelopes the board columns read. An optimistic move has to patch
+// whichever is mounted, so the updater is shape-aware rather than array-only.
 export function patchAppStatus(data, id, status) {
   const move = (rows) => rows.map((a) => (a.id === id ? { ...a, status } : a));
   if (Array.isArray(data)) return move(data);
   if (data && Array.isArray(data.items)) return { ...data, items: move(data.items) };
+  if (data && Array.isArray(data.pages)) {
+    return { ...data, pages: data.pages.map((p) => patchAppStatus(p, id, status)) };
+  }
   return data; // unfetched or an unexpected shape — leave it alone
+}
+
+export const BOARD_PAGE_SIZE = 10;
+
+// One infinite query per status column, each "Load more" fetching that
+// column's next page. STATUSES is a module constant, so the hook count and
+// order never change between renders; a filtered-out column is disabled, not
+// skipped. Rows are grouped by their *current* status at render time, so an
+// optimistic move (patchAppStatus) shows the card in its target column before
+// the refetch settles, even though it still lives in the source column's cache.
+function useBoardColumns({ enabled, statusFilter, search, companyId }) {
+  const qc = useQueryClient();
+  const filters = { search, companyId };
+  const queries = {};
+  for (const status of STATUSES) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    queries[status] = useInfiniteQuery({
+      queryKey: ['applications', 'board', status, filters],
+      queryFn: async ({ pageParam }) => {
+        if (pageParam === 1) {
+          // All columns share the same in-flight first-page request. Keep this
+          // query stale so mutation invalidations and remounts get fresh totals.
+          const board = await qc.fetchQuery({
+            queryKey: ['applications', 'board-initial', filters],
+            queryFn: ({ signal }) => listApplicationsBoard({ pageSize: BOARD_PAGE_SIZE, ...filters }, { signal }),
+            staleTime: 0,
+          });
+          return board.columns[status];
+        }
+        return listApplicationsPage({
+          page: pageParam, pageSize: BOARD_PAGE_SIZE, sort: 'applicationDate', dir: 'desc', status, ...filters,
+        });
+      },
+      initialPageParam: 1,
+      getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
+      enabled: enabled && (!statusFilter || statusFilter === status),
+      placeholderData: keepPreviousData, // no empty flash while a search refetches
+    });
+  }
+  return queries;
 }
 
 // Optimistic-move mutation config, extracted so the cache logic (the interesting
@@ -80,7 +127,7 @@ export function moveMutationOptions(qc) {
       for (const [key, data] of ctx?.prev ?? []) qc.setQueryData(key, data);
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ['applications'] });
+      refreshApplications(qc);
       qc.invalidateQueries({ queryKey: ['activity'] });
     },
   };
@@ -139,15 +186,29 @@ function Card({ app, onOpen }) {
   );
 }
 
-function Column({ status, apps, onOpen }) {
+function Column({ status, apps, total, hasMore, loadingMore, onLoadMore, onOpen }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
     <div ref={setNodeRef} className={`flex w-60 shrink-0 flex-col rounded-xl p-2 ${isOver ? 'bg-sky-50 ring-2 ring-sky-200' : 'bg-slate-50'}`}>
       <div className="mb-2 flex items-center justify-between px-1">
         <h2 className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>{label(status)}</h2>
-        <span className="text-xs font-medium text-slate-400">{apps.length}</span>
+        {/* The server total, not the loaded count: "25" on a 137-card column
+            would read as the whole column. */}
+        <span aria-label={`${total} applications in ${label(status)}`} className="text-xs font-medium text-slate-400">{total}</span>
       </div>
       {apps.map((a) => <Card key={a.id} app={a} onOpen={onOpen} />)}
+      {hasMore && (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          disabled={loadingMore}
+          aria-label={`Load more ${label(status)}`}
+          className="mt-1 rounded-lg py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-100/60 cursor-pointer
+            disabled:cursor-default disabled:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+        >
+          {loadingMore ? 'Loading…' : `Load more (${apps.length} of ${total})`}
+        </button>
+      )}
     </div>
   );
 }
@@ -284,15 +345,15 @@ export default function Applications() {
   );
 
   const isList = view === 'list';
-  // The board filters an already-loaded array, so its search is instant. Only
-  // the List view's search costs a request, so only it is debounced.
+  // Both views filter on the server now, so both debounce the search.
   const term = useDebouncedValue(search, 300).trim();
-  const boardTerm = search.trim().toLowerCase();
 
-  // The board needs every row: one column per status, and dragging between
-  // them. It stays on the unpaginated v1 call under the shared ['applications']
-  // key — the same key the four dropdown pages read.
-  const board = useQuery({ queryKey: ['applications'], queryFn: listApplications, enabled: !isList });
+  // The board loads each column a page at a time under ['applications','board',…].
+  // It must never touch the bare ['applications'] key: the four dropdown pages
+  // read every row from it, and a page there would present as missing data.
+  const columns = useBoardColumns({
+    enabled: !isList, statusFilter, search: term, companyId: companyFilter,
+  });
 
   // "One page" is a separate key from "all rows" on purpose. Writing a subset
   // into ['applications'] would truncate the Analysis / Interviews /
@@ -324,22 +385,23 @@ export default function Applications() {
   const onPageSizeChange = resetting(setPageSize);
   useClampedPage(page, list.data?.totalPages ?? 0, setPage);
 
-  const apps = board.data ?? [];
   const hasFilters = Boolean(search.trim() || statusFilter || companyFilter);
-  const visible = apps.filter((a) => {
-    if (statusFilter && a.status !== statusFilter) return false;
-    if (companyFilter && a.company?.id !== companyFilter) return false;
-    if (boardTerm && !(a.position.toLowerCase().includes(boardTerm) || (a.company?.name || '').toLowerCase().includes(boardTerm))) return false;
-    return true;
-  });
   const shownStatuses = statusFilter ? [statusFilter] : STATUSES;
+  const boardQueries = shownStatuses.map((s) => columns[s]);
+  // Deduped by id: mid-move, a card can be in both the source column's cache
+  // (optimistically patched) and the target's freshly refetched page.
+  const boardRows = [...new Map(
+    boardQueries.flatMap((q) => q.data?.pages.flatMap((p) => p.items) ?? []).map((a) => [a.id, a]),
+  ).values()];
+  const boardTotal = boardQueries.reduce((n, q) => n + (q.data?.pages[0]?.total ?? 0), 0);
+  const boardSettled = boardQueries.every((q) => !q.isPlaceholderData && !q.isFetching) && search.trim() === term;
   const clearFilters = () => { setSearch(''); setStatusFilter(''); setCompanyFilter(''); setPage(1); };
 
   const rows = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
   const totalPages = list.data?.totalPages ?? 0;
-  const isLoading = isList ? list.isLoading : board.isLoading;
-  const isError = isList ? list.isError : board.isError;
+  const isLoading = isList ? list.isLoading : boardQueries.some((q) => q.isLoading);
+  const isError = isList ? list.isError : boardQueries.some((q) => q.isError);
   // keepPreviousData means list.data is the PREVIOUS page's envelope while a
   // refetch is in flight, and isLoading is false because data already exists —
   // so total/totalPages are stale until the fetch settles. Reading them anyway
@@ -351,9 +413,11 @@ export default function Applications() {
   // isFetching have both already gone false for it. Without this clause,
   // `settled` goes true one render before `term` catches up, and "No
   // applications yet" flashes for a real, non-empty account.
-  const settled = isList ? !list.isPlaceholderData && !list.isFetching && search.trim() === term : true;
-  const nothingYet = isList ? settled && total === 0 && !hasFilters && !isError : apps.length === 0 && !isError;
-  const nothingMatched = isList ? settled && total === 0 && hasFilters && !isError : apps.length > 0 && visible.length === 0 && !isError;
+  // The board has the same placeholder hazard, across nine columns at once.
+  const settled = isList ? !list.isPlaceholderData && !list.isFetching && search.trim() === term : boardSettled;
+  const shownTotal = isList ? total : boardTotal;
+  const nothingYet = settled && shownTotal === 0 && !hasFilters && !isError;
+  const nothingMatched = settled && shownTotal === 0 && hasFilters && !isError;
 
   const move = useMutation(moveMutationOptions(qc));
   const onStatusChange = (id, status) => move.mutate({ id, status });
@@ -458,9 +522,21 @@ export default function Applications() {
           ) : (
             <DndContext sensors={sensors} onDragEnd={onDragEnd}>
               <div className="flex gap-3 overflow-x-auto pb-4">
-                {shownStatuses.map((s) => (
-                  <Column key={s} status={s} apps={visible.filter((a) => a.status === s)} onOpen={openDrawer} />
-                ))}
+                {shownStatuses.map((s) => {
+                  const q = columns[s];
+                  return (
+                    <Column
+                      key={s}
+                      status={s}
+                      apps={boardRows.filter((a) => a.status === s)}
+                      total={q.data?.pages[0]?.total ?? 0}
+                      hasMore={Boolean(q.hasNextPage)}
+                      loadingMore={q.isFetchingNextPage}
+                      onLoadMore={() => q.fetchNextPage()}
+                      onOpen={openDrawer}
+                    />
+                  );
+                })}
               </div>
             </DndContext>
           )}

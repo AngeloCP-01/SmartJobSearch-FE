@@ -1,10 +1,10 @@
 import api, { apiV2 } from './client';
 import { compactParams } from './params';
 
-// Every row, unpaginated, on v1. Feeds the Kanban board (which needs every row
-// to populate its columns and drag between them) and the four "pick an
-// application" dropdowns. Do NOT point this at v2 — see
-// docs/KICKOFF-v2-pagination.md; a paginated subset here reads as missing data.
+// Every row, unpaginated, on v1. Feeds the four "pick an application"
+// dropdowns. Do NOT point this at v2 — see docs/KICKOFF-v2-pagination.md; a
+// paginated subset here reads as missing data. (The board used to read this
+// too; it now starts with listApplicationsBoard and loads more per column.)
 export async function listApplications() {
   const { data } = await api.get('/applications');
   return data;
@@ -15,6 +15,10 @@ export async function listApplications() {
 // enum), so `?search=` would be a 400.
 export async function listApplicationsPage(params = {}) {
   const { data } = await apiV2.get('/applications', { params: compactParams(params) });
+  return data;
+}
+export async function listApplicationsBoard(params = {}, { signal } = {}) {
+  const { data } = await apiV2.get('/applications/board', { params: compactParams(params), signal });
   return data;
 }
 export async function getApplication(id) {

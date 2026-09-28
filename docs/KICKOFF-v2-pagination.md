@@ -108,7 +108,8 @@ of `report` JSON, not columns. Do not add UI affordances for them; the API will 
 
 ## Explicitly out of scope
 
-- **The Kanban board stays unpaginated.** It needs every row to populate its columns and to drag between them. Keep it on the all-rows call. This is a decision, not an oversight.
+- ~~**The Kanban board stays unpaginated.** It needs every row to populate its columns and to drag between them. Keep it on the all-rows call. This is a decision, not an oversight.~~
+  **Superseded 2026-09-28:** the board now paginates per column — one `useInfiniteQuery` per status on v2 (`pageSize=10`, "Load more" per column, server-side search/company filter). First pages share one `GET /api/v2/applications/board` request via `['applications','board-initial',filters]`; subsequent pages use the existing status-filtered list endpoint. Column caches remain under `['applications','board',status,filters]`. The bare `['applications']` key is untouched and still feeds the four dropdowns.
 - **Retiring v1.** Both versions coexist until every call site has moved.
 - **`documentName` / `position` as sortable columns** — needs a backend migration + backfill.
 
