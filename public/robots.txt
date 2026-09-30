@@ -6,6 +6,7 @@ Allow: /assets/
 Allow: /screenshots/
 Allow: /favicon.svg
 Allow: /apple-touch-icon.png
+Allow: /sitemap.xml
 Disallow: /
 
 Sitemap: https://jobtrail-hq.vercel.app/sitemap.xml
