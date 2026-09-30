@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /welcome
+Allow: /login
+Allow: /register
+Allow: /assets/
+Allow: /screenshots/
+Allow: /favicon.svg
+Allow: /apple-touch-icon.png
+Disallow: /
+
+Sitemap: https://jobtrail-hq.vercel.app/sitemap.xml
