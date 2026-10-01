@@ -119,8 +119,8 @@ export default function Landing() {
             </p>
           </div>
           <div className="overflow-hidden rounded-2xl border border-sky-100 shadow-lg md:order-1 md:col-span-3">
-            <img src="/screenshots/cover-letter.png" alt="AI-drafted cover letter for a Software Engineer application"
-              width="1136" height="500" loading="lazy" className="h-auto w-full" />
+            <img src="/screenshots/cover-letter.png" alt="AI-drafted cover letter for a Senior Full Stack Engineer application"
+              width="1136" height="316" loading="lazy" className="h-auto w-full" />
           </div>
         </div>
       </section>
