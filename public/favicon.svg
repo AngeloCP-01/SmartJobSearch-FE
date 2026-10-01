@@ -1,11 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <title>Applylark</title>
   <rect width="32" height="32" rx="8" fill="#0369a1"/>
-  <!-- Steps already walked: the trail leading in -->
-  <circle cx="5.6" cy="25.4" r="1.15" fill="#7dd3fc"/>
-  <circle cx="9" cy="23.9" r="1.35" fill="#bae6fd"/>
-  <!-- The trail itself, climbing as a J -->
-  <path d="M12.2 21.2a4.4 4.4 0 0 0 8.8 0V13.4" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
-  <!-- The goal at the summit: the offer -->
-  <path d="M21 3.6l1.5 3.05 3.36.49-2.43 2.37.57 3.35L21 11.28l-3 1.58.57-3.35-2.43-2.37 3.36-.49z" fill="#fbbf24"/>
+  <!-- The A: the climb toward an application landing -->
+  <path d="M7 25.5L13.5 8.5L20 25.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9.7 19.2H17.3" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- The lark taking off from the summit -->
+  <path d="M16.8 10.4c1.6-2.5 3.6-3.1 5.5-1.5c1.9-2.5 4.3-2.8 6.4-0.8c-2.4-0.2-4.3 0.8-5.8 3c-1.7-1.6-3.8-1.8-6.1-0.7z" fill="#fbbf24"/>
 </svg>

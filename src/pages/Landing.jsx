@@ -11,7 +11,7 @@ const BE_REPO = 'https://github.com/AngeloCP-01/SmartJobSearch-BE';
 
 const FEATURES = [
   { Icon: KanbanSquare, title: 'Kanban + List pipeline', text: 'Track every application from Draft to Offer with drag-to-update status, a sortable list view, and quick filters.' },
-  { Icon: ScanSearch, title: 'AI résumé / ATS analysis', text: 'Score your résumé for ATS-friendliness and match against any job description, with keyword gaps and fixes.' },
+  { Icon: ScanSearch, title: 'AI résumé tools', text: 'Score your résumé against any job description, see the keywords you’re missing, and tailor it from your own documents.' },
   { Icon: CalendarClock, title: 'Interviews & reminders', text: 'Schedule interviews, record results, and never miss a follow-up with an upcoming/overdue reminders feed.' },
   { Icon: FileText, title: 'Documents & contacts', text: 'Store résumé and cover-letter versions, link them to applications, and keep recruiter contacts in one place.' },
 ];
@@ -52,8 +52,8 @@ export default function Landing() {
           Run your job search like a pipeline.
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-          A CRM for the whole job hunt — track applications on a Kanban board, schedule interviews,
-          store résumés, and get an AI-assisted ATS analysis against every job description.
+          A CRM for the whole job hunt — auto-fill applications from any job posting, draft cover letters
+          with AI, and track every application, interview, and follow-up on one board.
         </p>
         <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button onClick={tryDemo} loading={demoBusy} className="px-5 py-3 text-base">
@@ -68,7 +68,7 @@ export default function Landing() {
         {demoError && <p role="alert" className="mt-3 text-sm text-red-600">{demoError}</p>}
 
         <div className="mt-12 overflow-hidden rounded-2xl border border-sky-100 shadow-xl">
-          <img src="/screenshots/03-applications-board.png" alt="Applications Kanban board" className="w-full" />
+          <img src="/screenshots/board.png" alt="Applications Kanban board" width="1440" height="470" className="h-auto w-full" />
         </div>
       </section>
 
@@ -87,22 +87,40 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* AI analysis showcase */}
+      {/* AI showcase: auto-fill + cover letters */}
       <section className="mx-auto max-w-6xl px-5 py-12">
-        <div className="grid items-center gap-8 md:grid-cols-2">
-          <div>
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-              The standout feature
-            </span>
-            <h2 className="mt-4 text-2xl font-bold text-slate-900 md:text-3xl">AI résumé &amp; ATS analysis</h2>
+        <div className="text-center">
+          <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            The standout features
+          </span>
+          <h2 className="mt-4 text-2xl font-bold text-slate-900 md:text-3xl">Less typing, more applying</h2>
+        </div>
+
+        <div className="mt-10 grid items-center gap-8 md:grid-cols-5">
+          <div className="md:col-span-3">
+            <h3 className="text-xl font-bold text-slate-900">Auto-fill an application from any posting</h3>
             <p className="mt-3 text-slate-600">
-              Pick an application and a résumé, and get an ATS-friendliness score, a job-description match score,
-              the keywords you’re missing, and prioritized suggestions. Powered by an LLM with a deterministic
-              fallback so it always returns something useful.
+              Paste a job posting, or its link, and AI fills in the role, company, salary range, work mode and
+              job description for you. Review it, hit save, and it’s on your board.
             </p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-sky-100 shadow-lg">
-            <img src="/screenshots/05-analysis.png" alt="AI résumé analysis report" className="w-full" />
+          <div className="mx-auto w-full max-w-sm overflow-hidden rounded-2xl border border-sky-100 shadow-lg md:col-span-2">
+            <img src="/screenshots/autofill.png" alt="New application form filled in by AI from a pasted job posting"
+              width="576" height="760" loading="lazy" className="h-auto w-full" />
+          </div>
+        </div>
+
+        <div className="mt-14 grid items-center gap-8 md:grid-cols-5">
+          <div className="md:order-2 md:col-span-2">
+            <h3 className="text-xl font-bold text-slate-900">A cover letter drafted in seconds</h3>
+            <p className="mt-3 text-slate-600">
+              Pick an application and a résumé and get a first draft written from your real experience and the
+              job description. Copy it, download it, or polish it in the built-in editor.
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-sky-100 shadow-lg md:order-1 md:col-span-3">
+            <img src="/screenshots/cover-letter.png" alt="AI-drafted cover letter for a Software Engineer application"
+              width="1136" height="500" loading="lazy" className="h-auto w-full" />
           </div>
         </div>
       </section>
