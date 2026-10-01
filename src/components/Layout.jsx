@@ -49,7 +49,7 @@ function Brand() {
   return (
     <div className="flex items-center gap-2 px-2 py-1">
       <img src="/favicon.svg" alt="" aria-hidden="true" className="h-8 w-8" />
-      <span className="font-bold text-slate-900">JobTrail</span>
+      <span className="font-bold text-slate-900">Applylark</span>
     </div>
   );
 }

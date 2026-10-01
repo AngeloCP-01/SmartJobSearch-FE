@@ -1,9 +1,9 @@
-# JobTrail
+# Applylark
 
 A full-stack CRM for managing a job search end to end — track applications across a Kanban pipeline, schedule interviews, keep notes on companies and contacts, store résumés, get an **AI-assisted résumé/ATS analysis** against each job description, generate cover letters, get **RAG-grounded résumé-tailoring suggestions**, and edit documents in a built-in rich-text editor.
 
 [![Frontend CI](https://github.com/AngeloCP-01/SmartJobSearch-FE/actions/workflows/ci.yml/badge.svg)](https://github.com/AngeloCP-01/SmartJobSearch-FE/actions/workflows/ci.yml)
-&nbsp;**[▶ Live demo](https://jobtrail-hq.vercel.app)** — click **“Try the demo”** (no sign-up).
+&nbsp;**[▶ Live demo](https://applylark.vercel.app)** — click **“Try the demo”** (no sign-up).
 
 > Two repos: **frontend** (this) and the **[API backend](https://github.com/AngeloCP-01/SmartJobSearch-BE)**.
 

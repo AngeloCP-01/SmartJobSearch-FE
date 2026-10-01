@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { X } from 'lucide-react';
 import useFocusTrap from '../hooks/useFocusTrap';
 
-// Discloses what JobTrail collects. Cookieless analytics needs no consent
+// Discloses what Applylark collects. Cookieless analytics needs no consent
 // banner, so this is disclosure rather than a gate. Follows the dialog pattern
 // used by ContactDrawer/ApplicationDrawer (Escape + focus trap + aria-modal).
 export default function PrivacyPolicyModal({ open, onClose }) {
@@ -31,7 +31,7 @@ export default function PrivacyPolicyModal({ open, onClose }) {
 
           <div className="space-y-4 px-5 py-4 text-sm text-slate-600">
             <p>
-              JobTrail is a portfolio project. It collects the minimum needed to keep the app
+              Applylark is a portfolio project. It collects the minimum needed to keep the app
               working and to understand how it performs. There are no advertising trackers.
             </p>
 

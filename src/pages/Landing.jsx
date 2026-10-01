@@ -28,7 +28,7 @@ export default function Landing() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
           <img src="/favicon.svg" alt="" aria-hidden="true" className="h-8 w-8" />
-          <span className="font-bold text-slate-900">JobTrail</span>
+          <span className="font-bold text-slate-900">Applylark</span>
         </div>
         <div className="flex items-center gap-2">
           <a href={FE_REPO} target="_blank" rel="noopener noreferrer"
@@ -128,7 +128,7 @@ export default function Landing() {
       </section>
 
       <footer className="mx-auto max-w-6xl px-5 py-8 text-center text-sm text-slate-400">
-        JobTrail — a portfolio project.
+        Applylark — a portfolio project.
       </footer>
       <PrivacyPolicyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </div>

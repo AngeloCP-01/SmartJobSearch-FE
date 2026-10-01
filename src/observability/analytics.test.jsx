@@ -49,14 +49,14 @@ describe('normalizeRoute', () => {
 describe('normalizeAnalyticsUrl', () => {
   test('rewrites the pathname but preserves origin and query', async () => {
     const { normalizeAnalyticsUrl } = await import('./analytics');
-    expect(normalizeAnalyticsUrl('https://jobtrail.app/editor/abc123?x=1'))
-      .toBe('https://jobtrail.app/editor/[id]?x=1');
+    expect(normalizeAnalyticsUrl('https://applylark.app/editor/abc123?x=1'))
+      .toBe('https://applylark.app/editor/[id]?x=1');
   });
 
   test('passes through a non-parameterized url', async () => {
     const { normalizeAnalyticsUrl } = await import('./analytics');
-    expect(normalizeAnalyticsUrl('https://jobtrail.app/applications'))
-      .toBe('https://jobtrail.app/applications');
+    expect(normalizeAnalyticsUrl('https://applylark.app/applications'))
+      .toBe('https://applylark.app/applications');
   });
 
   test('returns the input unchanged when it is not a parseable url', async () => {
@@ -81,8 +81,8 @@ describe('WebVitals', () => {
     expect(lastSpeedInsightsProps.route).toBe('/editor/[id]');
 
     expect(typeof lastAnalyticsProps.beforeSend).toBe('function');
-    expect(lastAnalyticsProps.beforeSend({ url: 'https://jobtrail.app/editor/abc123' }))
-      .toEqual({ url: 'https://jobtrail.app/editor/[id]' });
+    expect(lastAnalyticsProps.beforeSend({ url: 'https://applylark.app/editor/abc123' }))
+      .toEqual({ url: 'https://applylark.app/editor/[id]' });
   });
 });
 

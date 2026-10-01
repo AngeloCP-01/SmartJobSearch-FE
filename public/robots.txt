@@ -9,4 +9,4 @@ Allow: /apple-touch-icon.png
 Allow: /sitemap.xml
 Disallow: /
 
-Sitemap: https://jobtrail-hq.vercel.app/sitemap.xml
+Sitemap: https://applylark.vercel.app/sitemap.xml
